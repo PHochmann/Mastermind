@@ -261,10 +261,10 @@ double mm_measure_average(Strategy strat)
             turns++;
         }
         mm_end_game(mm);
-        if (i % 10 == 0)
+        /*if (i % 10 == 0)
         {
             printf("%f\n", (float)i / NUM_INPUTS);
-        }
+        }*/
     }
     return (double)turns / NUM_INPUTS;
 }
