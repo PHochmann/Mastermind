@@ -16,7 +16,7 @@
 
 #define RED "\033[0;31m"
 #define GRN "\033[0;32m"
-#define YEL "\033[0;33m"
+#define YEL "\033[38:2:250:237:39m"
 #define BLU "\033[0;34m"
 #define CYN "\033[0;36m"
 #define ORN "\033[38:2:255:165:0m"
@@ -38,12 +38,18 @@ struct MasterMind
     bool solspace[NUM_INPUTS];
     uint16_t num_solutions;
     uint8_t num_turns;
+    uint8_t last_feedback;
 };
 
 static bool initialized = false;
 static uint8_t feedback_encode[NUM_SLOTS + 1][NUM_SLOTS + 1]; // First index: num_b, second index: num_w
 //static uint16_t feedback_decode[NUM_FEEDBACKS];
 static uint8_t feedback_lookup[NUM_INPUTS][NUM_INPUTS];
+
+static uint16_t recomm_1_lookup[NUM_STRATEGIES];
+static bool recomm_1_init[NUM_STRATEGIES];
+static uint16_t recomm_2_lookup[NUM_STRATEGIES][NUM_FEEDBACKS];
+static bool recomm_2_init[NUM_STRATEGIES];
 
 /*
  * PRIVATE FUNCTIONS
@@ -79,11 +85,37 @@ static Color get_color(uint16_t code, uint8_t index)
 {
     *b = feedback_decode[code] >> 8;
     *w = feedback_decode[code] & 0xFF;
-}*/
+}
 
 static uint16_t color_to_code(Color a, Color b, Color c, Color d)
 {
     return a + NUM_COLORS * b + pow(NUM_COLORS, 2) * c + pow(NUM_COLORS, 3) * d;
+}*/
+
+static void init_recommendation_lookup()
+{
+    /* We build a lookup table for the first and second recommendation.
+     * This drastically improves performance since computation time for mm_recommend()
+     * decreases a lot for further guesses because of the smaller solution space.
+     */
+    for (uint8_t strat = 0; strat < NUM_STRATEGIES; strat++)
+    {
+        // 1. recommendation
+        MasterMind *mm = mm_get_new_game();
+        recomm_1_lookup[strat] = mm_recommend(mm, strat);
+        recomm_1_init[strat] = true;
+        mm_end_game(mm);
+
+        // 2. recommendation
+        for (uint8_t fb = 0; fb < NUM_FEEDBACKS; fb++)
+        {
+            MasterMind *mm = mm_get_new_game();
+            mm_constrain(mm, mm_recommend(mm, strat), fb);
+            recomm_2_lookup[strat][fb] = mm_recommend(mm, strat);
+            mm_end_game(mm);
+        }
+        recomm_2_init[strat] = true;
+    }
 }
 
 static void init_feedback()
@@ -138,17 +170,22 @@ static void init_feedback()
  * PUBLIC FUNCTIONS
  */
 
-void mm_init()
+void mm_init(bool precompute)
 {
+    printf("Initializing data structures...\n");
     init_feedback();
     initialized = true;
+    if (precompute)
+    {
+        init_recommendation_lookup();
+    }
 }
 
 MasterMind *mm_get_new_game()
 {
     if (!initialized)
     {
-        mm_init();
+        mm_init(true);
     }
 
     MasterMind *result = malloc(sizeof(MasterMind));
@@ -168,9 +205,13 @@ void mm_end_game(MasterMind* mm)
 
 uint16_t mm_recommend(MasterMind *mm, Strategy strat)
 {
-    if (mm->num_solutions == NUM_INPUTS)
+    if (recomm_1_init[strat] && mm->num_turns == 0)
     {
-        return color_to_code(COL_BLUE, COL_BLUE, COL_RED, COL_RED);
+        return recomm_1_lookup[strat];
+    }
+    else if (recomm_2_init[strat] && mm->num_turns == 1)
+    {
+        return recomm_2_lookup[strat][mm->last_feedback];
     }
 
     uint32_t aggregations[NUM_INPUTS];
@@ -206,6 +247,8 @@ uint16_t mm_recommend(MasterMind *mm, Strategy strat)
                         break;
                     case STRAT_MINMAX:
                         aggregations[i] = MAX(aggregations[i], num_solutions);
+                        break;
+                    default:
                         break;
                 }
 
@@ -244,6 +287,7 @@ void mm_constrain(MasterMind* mm, uint16_t input, uint8_t feedback)
     }
     mm->num_solutions = remaining;
     mm->num_turns++;
+    mm->last_feedback = feedback;
 }
 
 double mm_measure_average(Strategy strat)
@@ -261,10 +305,10 @@ double mm_measure_average(Strategy strat)
             turns++;
         }
         mm_end_game(mm);
-        /*if (i % 10 == 0)
+        if (i % 10 == 0)
         {
             printf("%f\n", (float)i / NUM_INPUTS);
-        }*/
+        }
     }
     return (double)turns / NUM_INPUTS;
 }

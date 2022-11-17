@@ -1,6 +1,5 @@
 #include <math.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -12,15 +11,8 @@ const Strategy strategy = STRAT_AVERAGE;
 void compare_averages()
 {
     printf("Average number of turns for strategies:\n");
-    if (fork() == 0)
-    {
-        printf("Minmax: %f\n", mm_measure_average(STRAT_MINMAX));
-    }
-    else
-    {
-        printf("Average: %f\n", mm_measure_average(STRAT_AVERAGE));
-    }
-    exit(0);
+    printf("Minmax: %f\n", mm_measure_average(STRAT_MINMAX));
+    printf("Average: %f\n", mm_measure_average(STRAT_AVERAGE));
 }
 
 void play()
@@ -53,8 +45,7 @@ void play()
 
 int main()
 {
-    mm_init();
-    compare_averages();
+    //compare_averages();
     while (true)
     {
         play();

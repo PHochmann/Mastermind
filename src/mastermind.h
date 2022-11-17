@@ -3,13 +3,14 @@
 
 typedef enum
 {
-    STRAT_AVERAGE,
-    STRAT_MINMAX
+    STRAT_AVERAGE = 0,
+    STRAT_MINMAX,
+    NUM_STRATEGIES
 } Strategy;
 
 typedef struct MasterMind MasterMind;
 
-void mm_init();
+void mm_init(bool precompute);
 MasterMind *mm_get_new_game();
 void mm_end_game(MasterMind* mm);
 
