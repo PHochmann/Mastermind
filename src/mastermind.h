@@ -1,26 +1,25 @@
 #include <stdint.h>
-#include <stdbool.h>
+
+#define MM_NUM_SLOTS        4
+#define MM_NUM_FEEDBACKS   14
+#define MM_NUM_INPUTS    1296
 
 typedef enum
 {
-    STRAT_AVERAGE = 0,
-    STRAT_MINMAX,
-    NUM_STRATEGIES
-} Strategy;
+    MM_COL_ORANGE = 0,
+    MM_COL_RED,
+    MM_COL_YELLOW,
+    MM_COL_BLUE,
+    MM_COL_GREEN,
+    MM_COL_CYAN,
+    MM_NUM_COLORS
+} Color;
 
-typedef struct MasterMind MasterMind;
-
-void mm_init(bool precompute);
-MasterMind *mm_get_new_game();
-void mm_end_game(MasterMind* mm);
-
-void mm_constrain(MasterMind *mm, uint16_t input, uint8_t feedback);
-uint16_t mm_recommend(MasterMind *mm, Strategy strat);
-double mm_measure_average(Strategy strat);
+void mm_init();
+uint8_t mm_get_feedback(uint16_t input, uint16_t solution);
 bool mm_is_winning_feedback(uint8_t fb);
 
-uint16_t mm_get_remaining_solutions(MasterMind *mm);
-uint16_t mm_get_turns(MasterMind *mm);
-
 uint8_t mm_read_feedback();
+uint16_t mm_read_input();
 void mm_print_colors(uint16_t input);
+void mm_print_feedback(uint8_t feedback);
