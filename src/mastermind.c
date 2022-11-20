@@ -140,7 +140,11 @@ uint8_t mm_read_feedback()
     fflush(stdout);
     char inp[3];
     read(STDIN_FILENO, &inp, 3);
-    return feedback_encode[inp[0] - '0'][inp[1] - '0'];
+    uint8_t fb = feedback_encode[inp[0] - '0'][inp[1] - '0'];
+    printf("\033[F");
+    mm_print_feedback(fb);
+    printf("\n");
+    return fb;
 }
 
 uint16_t mm_read_input()
@@ -174,7 +178,11 @@ uint16_t mm_read_input()
                 break;
         }
     }
-    return colors_to_code(colors);
+    uint16_t result = colors_to_code(colors);
+    printf("\033[F");
+    mm_print_colors(result);
+    printf("     \n");
+    return result;
 }
 
 void mm_print_colors(uint16_t input)
@@ -183,12 +191,11 @@ void mm_print_colors(uint16_t input)
     {
         printf("%s  ", col_to_str(code_to_color(input, i)));
     }
-    printf("\n");
 }
 
 void mm_print_feedback(uint8_t feedback)
 {
     uint8_t b, w;
     code_to_feedback(feedback, &b, &w);
-    printf(BLK_BG WHT " Black: %d " RST "\t" WHT_BG BLK " White: %d " RST "\n", b, w);
+    printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w);
 }

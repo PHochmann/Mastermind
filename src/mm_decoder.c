@@ -171,29 +171,6 @@ void mm_constrain(MM_Decoder* mm, uint16_t input, uint8_t feedback)
     mm->last_feedback = feedback;
 }
 
-double mm_measure_average(Strategy strat)
-{
-    uint32_t turns = 0;
-    for (uint16_t i = 0; i < MM_NUM_INPUTS; i++)
-    {
-        MM_Decoder *mm = mm_new_decoder();
-        uint8_t fb = 0;
-        while (!mm_is_winning_feedback(fb))
-        {
-            uint16_t recommendation = mm_recommend(mm, strat);
-            fb = mm_get_feedback(recommendation, i);
-            mm_constrain(mm, recommendation, fb);
-            turns++;
-        }
-        mm_end_decoder(mm);
-        if (i % 10 == 0)
-        {
-            printf("%f\n", (float)i / MM_NUM_INPUTS);
-        }
-    }
-    return (double)turns / MM_NUM_INPUTS;
-}
-
 // Getters
 
 uint16_t mm_get_remaining_solutions(MM_Decoder *mm)
