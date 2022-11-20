@@ -9,13 +9,17 @@
 
 #define MIN(a, b) (a < b ? a : b)
 
-#define RED "\033[0;31m"
-#define GRN "\033[0;32m"
-#define YEL "\033[38:2:250:237:39m"
-#define BLU "\033[0;34m"
-#define CYN "\033[0;36m"
-#define ORN "\033[38:2:255:165:0m"
-#define RES "\033[0m"
+#define RED "\033[38:2:255:000:000m"
+#define GRN "\033[38:2:000:255:000m"
+#define YEL "\033[38:2:250:237:000m"
+#define BLU "\033[38:2:000:000:255m"
+#define CYN "\033[38:2:065:253:254m"
+#define ORN "\033[38:2:255:165:000m"
+#define BLK "\033[38:2:000:000:000m"
+#define WHT "\033[38:2:255:255:255m"
+#define BLK_BG "\033[48:2:000:000:000m"
+#define WHT_BG "\033[48:2:255:255:255m"
+#define RST "\033[0m"
 
 static bool initialized = false;
 static uint8_t feedback_encode[MM_NUM_SLOTS + 1][MM_NUM_SLOTS + 1]; // First index: num_b, second index: num_w
@@ -27,17 +31,17 @@ static char *col_to_str(Color col)
     switch (col)
     {
         case MM_COL_ORANGE:
-            return ORN "Orange" RES;
+            return ORN "Orange" RST;
         case MM_COL_RED:
-            return RED "Red" RES;
+            return RED "Red" RST;
         case MM_COL_YELLOW:
-            return YEL "Yellow" RES;
+            return YEL "Yellow" RST;
         case MM_COL_BLUE:
-            return BLU "Blue" RES;
+            return BLU "Blue" RST;
         case MM_COL_CYAN:
-            return CYN "Cyan" RES;
+            return CYN "Cyan" RST;
         case MM_COL_GREEN:
-            return GRN "Green" RES;
+            return GRN "Green" RST;
         default:
             return "Error";
     }
@@ -110,6 +114,8 @@ void mm_init()
             feedback_lookup[input][solution] = feedback_encode[num_b][num_w];
         }
     }
+
+    initialized = true;
 }
 
 uint8_t mm_get_feedback(uint16_t input, uint16_t solution)
@@ -184,5 +190,5 @@ void mm_print_feedback(uint8_t feedback)
 {
     uint8_t b, w;
     code_to_feedback(feedback, &b, &w);
-    printf("Black: %d\tWhite: %d\n", b, w);
+    printf(BLK_BG WHT " Black: %d " RST "\t" WHT_BG BLK " White: %d " RST "\n", b, w);
 }
