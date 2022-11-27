@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "mastermind.h"
+#include "util/string_builder.h"
 
 #define MIN(a, b) (a < b ? a : b)
 
@@ -33,17 +34,17 @@ static char *col_to_str(Color col)
         case MM_COL_ORANGE:
             return ORN "Orange" RST;
         case MM_COL_RED:
-            return RED "Red" RST;
+            return RED " Red  " RST;
         case MM_COL_YELLOW:
             return YEL "Yellow" RST;
         case MM_COL_BLUE:
-            return BLU "Blue" RST;
+            return BLU " Blue " RST;
         case MM_COL_CYAN:
-            return CYN "Cyan" RST;
+            return CYN " Cyan " RST;
         case MM_COL_GREEN:
-            return GRN "Green" RST;
+            return GRN "Green " RST;
         default:
-            return "Error";
+            return "Error ";
     }
 }
 
@@ -147,7 +148,7 @@ uint8_t mm_read_feedback()
     return fb;
 }
 
-uint16_t mm_read_input()
+uint16_t mm_read_colors()
 {
     printf("colors [orybcg]*%d: ", MM_NUM_SLOTS);
     fflush(stdout);
@@ -179,9 +180,6 @@ uint16_t mm_read_input()
         }
     }
     uint16_t result = colors_to_code(colors);
-    printf("\033[F");
-    mm_print_colors(result);
-    printf("     \n");
     return result;
 }
 
@@ -189,13 +187,33 @@ void mm_print_colors(uint16_t input)
 {
     for (uint8_t i = 0; i < MM_NUM_SLOTS; i++)
     {
-        printf("%s  ", col_to_str(code_to_color(input, i)));
+        printf("%s  ", col_to_str(code_to_color(input, i))); // 32 chars
     }
+}
+
+char *mm_get_colors_string(uint16_t input)
+{
+    StringBuilder builder = strbuilder_create(1);
+    strbuilder_append(&builder, " ");
+    for (uint8_t i = 0; i < MM_NUM_SLOTS; i++)
+    {
+        strbuilder_append(&builder, "%s  ", col_to_str(code_to_color(input, i))); // 32 chars
+    }
+    return strbuilder_to_str(&builder);
 }
 
 void mm_print_feedback(uint8_t feedback)
 {
     uint8_t b, w;
     code_to_feedback(feedback, &b, &w);
-    printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w);
+    printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
+}
+
+char *mm_get_feedback_string(uint8_t feedback)
+{
+    StringBuilder builder = strbuilder_create(1);
+    uint8_t b, w;
+    code_to_feedback(feedback, &b, &w);
+    strbuilder_append(&builder, BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
+    return strbuilder_to_str(&builder);
 }
