@@ -27,3 +27,5 @@ void mm_print_feedback(uint8_t feedback);
 
 char *mm_get_feedback_string(uint8_t feedback);
 char *mm_get_colors_string(uint16_t input);
+
+void mm_code_to_feedback(uint8_t code, uint8_t *b, uint8_t *w);

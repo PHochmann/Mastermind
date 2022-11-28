@@ -28,7 +28,7 @@ void clear_screen()
     printf("\033[1;1H\033[2J");
 }
 
-void pressany()
+void anykey()
 {
     printf("Press enter to continue...\n");
     getchar();
@@ -101,8 +101,8 @@ void play_game(uint16_t solution, uint16_t *out_guesses, uint8_t *out_feedbacks,
 
 void duel(uint8_t num_rounds)
 {
-    uint16_t total_turns_a = 0;
-    uint16_t total_turns_b = 0;
+    uint16_t points_a = 0;
+    uint16_t points_b = 0;
     for (uint8_t i = 0; i < num_rounds; i++)
     {
         clear_screen();
@@ -116,62 +116,89 @@ void duel(uint8_t num_rounds)
 
         printf("Round %d - %s's turn\n", i + 1, PLAYER_A);
         play_game(solution, guesses_a, feedbacks_a, &turns_a);
-        pressany();
+        anykey();
         clear_screen();
         printf("Round %d - %s's turn\n", i + 1, PLAYER_B);
         play_game(solution, guesses_b, feedbacks_b, &turns_b);
-        pressany();
+        anykey();
         clear_screen();
 
-        printf("Summary of round %d:\n\n", i + 1);
         Table *tbl = get_empty_table();
-        add_cell(tbl, " " PLAYER_A " ");
-        set_vline(tbl, 1, BORDER_SINGLE);
-        add_cell(tbl, " " PLAYER_B " ");
+        set_span(tbl, 6, 1);
+        override_horizontal_alignment(tbl, H_ALIGN_CENTER);
+        add_cell_fmt(tbl, "Summary of round 1", i + 1);
         next_row(tbl);
         set_hline(tbl, BORDER_SINGLE);
+        add_cell(tbl, " " PLAYER_A " ");
+        add_cell(tbl, "#B");
+        add_cell(tbl, "#W ");
+        add_cell(tbl, " " PLAYER_B " ");
+        add_cell(tbl, "#B");
+        add_cell(tbl, "#W ");
+        next_row(tbl);
+        set_vline(tbl, 3, BORDER_SINGLE);
+        set_hline(tbl, BORDER_SINGLE);
+
         for (uint8_t j = 0; j < MAX(turns_a, turns_b) + 1; j++)
         {
-            if (j == turns_a)
-            {
-                add_cell_fmt(tbl, " ~ ~ %d turns ~ ~ ", turns_a);
-            } else if (j < turns_a)
+            if (j < turns_a)
             {
                 add_cell_gc(tbl, mm_get_colors_string(guesses_a[j]));
-            } else if (j > turns_a)
+                uint8_t b, w;
+                mm_code_to_feedback(feedbacks_a[j], &b, &w);
+                add_cell_fmt(tbl, " %d ", b);
+                add_cell_fmt(tbl, " %d ", w);
+            } else
             {
+                add_empty_cell(tbl);
+                add_empty_cell(tbl);
                 add_empty_cell(tbl);
             }
 
-            if (j == turns_b)
-            {
-                add_cell_fmt(tbl, " ~ ~ %d turns ~ ~ ", turns_b);
-            } else if (j < turns_b)
+            if (j < turns_b)
             {
                 add_cell_gc(tbl, mm_get_colors_string(guesses_b[j]));
-            } else if (j > turns_b)
+                uint8_t b, w;
+                mm_code_to_feedback(feedbacks_b[j], &b, &w);
+                add_cell_fmt(tbl, " %d ", b);
+                add_cell_fmt(tbl, " %d ", w);
+            } else
             {
+                add_empty_cell(tbl);
+                add_empty_cell(tbl);
                 add_empty_cell(tbl);
             }
             next_row(tbl);
         }
+        set_hline(tbl, BORDER_SINGLE);
+        set_span(tbl, 3, 1);
+        add_cell_fmt(tbl, " %d turns", turns_a);
+        set_span(tbl, 3, 1);
+        add_cell_fmt(tbl, " %d turns", turns_b);
+        next_row(tbl);
+        make_boxed(tbl, BORDER_SINGLE);
         print_table(tbl);
         free_table(tbl);
         printf("\n");
-        pressany();
+        anykey();
 
-        total_turns_a = turns_a;
-        total_turns_b = turns_b;
+        if (turns_a < turns_b)
+        {
+            points_a++;
+        } else if (turns_b < turns_a)
+        {
+            points_b++;
+        }
     }
 
-    if (total_turns_a == total_turns_b)
+    if (points_a == points_b)
     {
         printf("Draw!\n");
     }
     else
     {
-        const char *winner = total_turns_a < total_turns_b ? PLAYER_A : PLAYER_B;
-        printf("%s wins! Congratulations! %s took %d turns, %s took %d turns\n", winner, PLAYER_A, total_turns_a, PLAYER_B, total_turns_b);
+        const char *winner = points_a > points_b ? PLAYER_A : PLAYER_B;
+        printf("%s wins! Congratulations! %s: %d points, %s: %d points\n", winner, PLAYER_A, points_a, PLAYER_B, points_b);
     }
 }
 
@@ -189,7 +216,7 @@ int main()
         switch(inp[0])
         {
             case 'd':
-                duel(1);
+                duel(4);
                 break;
             case 'r':
                 play_decoder();

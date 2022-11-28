@@ -63,7 +63,7 @@ static uint16_t colors_to_code(Color *colors)
     return result;
 }
 
-static void code_to_feedback(uint8_t code, uint8_t *b, uint8_t *w)
+void mm_code_to_feedback(uint8_t code, uint8_t *b, uint8_t *w)
 {
     *b = feedback_decode[code] >> 8;
     *w = feedback_decode[code] & 0xFF;
@@ -205,7 +205,7 @@ char *mm_get_colors_string(uint16_t input)
 void mm_print_feedback(uint8_t feedback)
 {
     uint8_t b, w;
-    code_to_feedback(feedback, &b, &w);
+    mm_code_to_feedback(feedback, &b, &w);
     printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
 }
 
@@ -213,7 +213,7 @@ char *mm_get_feedback_string(uint8_t feedback)
 {
     StringBuilder builder = strbuilder_create(1);
     uint8_t b, w;
-    code_to_feedback(feedback, &b, &w);
+    mm_code_to_feedback(feedback, &b, &w);
     strbuilder_append(&builder, BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
     return strbuilder_to_str(&builder);
 }

@@ -42,7 +42,7 @@ struct Row
     struct Cell cells[TABLE_MAX_COLS]; // All cells of this row from left to right
     struct Row *next_row;              // Pointer to next row or NULL if last row
     TableBorderStyle border_above;     // Default border above (can be overwritten in cell)
-    size_t border_above_counter;       // Counts cells that override their border_above
+    int border_above_counter;       // Counts cells that override their border_above
 };
 
 struct Table
@@ -55,7 +55,7 @@ struct Table
     TableBorderStyle borders_left[TABLE_MAX_COLS]; // Default left border of cols
     TableHAlign h_aligns[TABLE_MAX_COLS];          // Default horizontal alignment of cols
     TableVAlign v_aligns[TABLE_MAX_COLS];          // Default vertical alignment of cols
-    size_t border_left_counters[TABLE_MAX_COLS];   // Counts cells that override their border_left
+    int border_left_counters[TABLE_MAX_COLS];   // Counts cells that override their border_left
 };
 
 // Represents a size contraint in one dimension imposed by a single cell
@@ -155,7 +155,10 @@ static size_t get_text_width(const char *str)
 
 static void print_repeated(const char *string, size_t times, FILE *stream)
 {
-    for (size_t i = 0; i < times; i++) fprintf(stream, "%s", string);
+    for (size_t i = 0; i < times; i++)
+    {
+        fprintf(stream, "%s", string);
+    }
 }
 
 static void print_text(const struct Cell *cell,
@@ -234,7 +237,12 @@ static size_t get_total_width(const Table *table, const size_t *col_widths, stru
     size_t sum = 0;
     for (size_t i = 0; i < cell->span_x; i++)
     {
-        if (i != 0 && table->border_left_counters[cell->x + i + 1] > 0) sum++;
+        if (i != 0
+            && i < cell->span_x - 1
+            && table->border_left_counters[cell->x + i + 1] > 0)
+        {
+            sum++;
+        }
         sum += col_widths[cell->x + i];
     }
     return sum;
