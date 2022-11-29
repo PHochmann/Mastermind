@@ -16,16 +16,31 @@
 #define BLU "\033[38:2:000:000:255m"
 #define CYN "\033[38:2:065:253:254m"
 #define ORN "\033[38:2:255:165:000m"
+#define PIN "\033[38:2:219:112:147m"
+#define DRG "\033[38:2:085:107:047m"
 #define BLK "\033[38:2:000:000:000m"
 #define WHT "\033[38:2:255:255:255m"
 #define BLK_BG "\033[48:2:000:000:000m"
 #define WHT_BG "\033[48:2:255:255:255m"
 #define RST "\033[0m"
 
-static bool initialized = false;
+static bool initialized    = false;
+static bool fb_lookup_init = false;
 static uint8_t feedback_encode[MM_NUM_SLOTS + 1][MM_NUM_SLOTS + 1]; // First index: num_b, second index: num_w
 static uint16_t feedback_decode[MM_NUM_FEEDBACKS];
 static uint8_t feedback_lookup[MM_NUM_INPUTS][MM_NUM_INPUTS];
+
+typedef enum
+{
+    MM_COL_ORANGE,
+    MM_COL_RED,
+    MM_COL_YELLOW,
+    MM_COL_BLUE,
+    MM_COL_GREEN,
+    MM_COL_CYAN,
+    MM_COL_PINK,
+    MM_COL_DARKGREEN
+} Color;
 
 static char *col_to_str(Color col)
 {
@@ -43,6 +58,10 @@ static char *col_to_str(Color col)
             return CYN " Cyan " RST;
         case MM_COL_GREEN:
             return GRN "Green " RST;
+        case MM_COL_PINK:
+            return PIN " Pink " RST;
+        case MM_COL_DARKGREEN:
+            return DRG "DGreen" RST;
         default:
             return "Error ";
     }
@@ -61,6 +80,34 @@ static uint16_t colors_to_code(Color *colors)
         result += colors[i] * pow(MM_NUM_COLORS, i);
     }
     return result;
+}
+
+static uint8_t calculate_fb(uint16_t a, uint16_t b)
+{
+    uint8_t num_b = 0;
+    uint8_t num_w = 0;
+    uint8_t color_counts_a[MM_NUM_COLORS] = { 0 };
+    uint8_t color_counts_b[MM_NUM_COLORS] = { 0 };
+
+    for (uint8_t i = 0; i < MM_NUM_SLOTS; i++)
+    {
+        Color col_a = code_to_color(a, i);
+        Color col_b = code_to_color(b, i);
+        color_counts_a[col_a]++;
+        color_counts_b[col_b]++;
+        if (col_a == col_b)
+        {
+            num_b++;
+        }
+    }
+
+    for (uint8_t i = 0; i < MM_NUM_COLORS; i++)
+    {
+        num_w += MIN(color_counts_a[i], color_counts_b[i]);
+    }
+    num_w -= num_b;
+
+    return feedback_encode[num_b][num_w];
 }
 
 void mm_code_to_feedback(uint8_t code, uint8_t *b, uint8_t *w)
@@ -84,48 +131,37 @@ void mm_init()
             }
         }
     }
-
-    for (uint16_t input = 0; input < MM_NUM_INPUTS; input++)
-    {
-        for (uint16_t solution = 0; solution < MM_NUM_INPUTS; solution++)
-        {
-            uint8_t num_b = 0;
-            uint8_t num_w = 0;
-            uint8_t color_counts_a[MM_NUM_COLORS] = { 0 };
-            uint8_t color_counts_b[MM_NUM_COLORS] = { 0 };
-
-            for (uint8_t i = 0; i < MM_NUM_SLOTS; i++)
-            {
-                Color a = code_to_color(input, i);
-                Color b = code_to_color(solution, i);
-                color_counts_a[a]++;
-                color_counts_b[b]++;
-                if (a == b)
-                {
-                    num_b++;
-                }
-            }
-
-            for (uint8_t i = 0; i < MM_NUM_COLORS; i++)
-            {
-                num_w += MIN(color_counts_a[i], color_counts_b[i]);
-            }
-            num_w -= num_b;
-
-            feedback_lookup[input][solution] = feedback_encode[num_b][num_w];
-        }
-    }
-
     initialized = true;
 }
 
-uint8_t mm_get_feedback(uint16_t input, uint16_t solution)
+void mm_init_feedback_lookup()
 {
-    if (!initialized)
+    if (fb_lookup_init)
     {
-        mm_init();
+        return;
     }
-    return feedback_lookup[input][solution];
+
+    for (uint16_t a = 0; a < MM_NUM_INPUTS; a++)
+    {
+        for (uint16_t b = 0; b <= a; b++)
+        {
+            feedback_lookup[a][b] = calculate_fb(a, b);
+            feedback_lookup[b][a] = feedback_lookup[a][b];
+        }
+    }
+    fb_lookup_init = true;
+}
+
+uint8_t mm_get_feedback(uint16_t a, uint16_t b)
+{
+    if (fb_lookup_init)
+    {
+        return feedback_lookup[a][b];
+    }
+    else
+    {
+        return calculate_fb(a, b);
+    }
 }
 
 bool mm_is_winning_feedback(uint8_t fb)
@@ -150,7 +186,7 @@ uint8_t mm_read_feedback()
 
 uint16_t mm_read_colors()
 {
-    printf("colors [orybcg]*%d: ", MM_NUM_SLOTS);
+    printf("colors [orybcgpd]*%d: ", MM_NUM_SLOTS);
     fflush(stdout);
     char inp[MM_NUM_SLOTS + 1];
     Color colors[MM_NUM_SLOTS];
@@ -177,6 +213,12 @@ uint16_t mm_read_colors()
             case 'g':
                 colors[i] = MM_COL_GREEN;
                 break;
+            case 'p':
+                colors[i] = MM_COL_PINK;
+                break;
+            case 'd':
+                colors[i] = MM_COL_DARKGREEN;
+                break;
         }
     }
     uint16_t result = colors_to_code(colors);
@@ -185,10 +227,9 @@ uint16_t mm_read_colors()
 
 void mm_print_colors(uint16_t input)
 {
-    for (uint8_t i = 0; i < MM_NUM_SLOTS; i++)
-    {
-        printf("%s  ", col_to_str(code_to_color(input, i))); // 32 chars
-    }
+    char *str = mm_get_colors_string(input);
+    printf("%s", str);
+    free(str);
 }
 
 char *mm_get_colors_string(uint16_t input)
@@ -207,13 +248,4 @@ void mm_print_feedback(uint8_t feedback)
     uint8_t b, w;
     mm_code_to_feedback(feedback, &b, &w);
     printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
-}
-
-char *mm_get_feedback_string(uint8_t feedback)
-{
-    StringBuilder builder = strbuilder_create(1);
-    uint8_t b, w;
-    mm_code_to_feedback(feedback, &b, &w);
-    strbuilder_append(&builder, BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
-    return strbuilder_to_str(&builder);
 }

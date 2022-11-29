@@ -41,7 +41,7 @@ void print_winning_message(uint8_t num_turns)
 
 void print_losing_message()
 {
-    printf("~ ~ Game over - You could not make it in %d turns ~ ~\n\n", MM_NUM_MAX_GUESSES);
+    printf("~ ~ Game over - You could not make it in %d turns ~ ~\n", MM_NUM_MAX_GUESSES);
 }
 
 void play_decoder()
@@ -81,8 +81,14 @@ void play_game(uint16_t solution, uint16_t *out_guesses, uint8_t *out_feedbacks,
         mm_print_colors(input);
         printf("\n");
         feedback = mm_get_feedback(input, solution);
-        out_feedbacks[mm_get_turns(mm)] = feedback;
-        out_guesses[mm_get_turns(mm)] = input;
+        if (out_feedbacks != NULL)
+        {
+            out_feedbacks[mm_get_turns(mm)] = feedback;
+        }
+        if (out_guesses != NULL)
+        {
+            out_guesses[mm_get_turns(mm)] = input;
+        }
         mm_constrain(mm, input, feedback);
         mm_print_feedback(feedback);
         printf("\n");
@@ -90,13 +96,27 @@ void play_game(uint16_t solution, uint16_t *out_guesses, uint8_t *out_feedbacks,
     if (mm_get_turns(mm) == MM_NUM_MAX_GUESSES + 1)
     {
         print_losing_message();
+        printf("Solution: ");
+        mm_print_colors(solution);
+        printf("\n\n");
     }
     else
     {
         print_winning_message(mm_get_turns(mm));
     }
-    *out_num_turns = mm_get_turns(mm);
+    if (out_num_turns != NULL)
+    {
+        *out_num_turns = mm_get_turns(mm);
+    }
     mm_end_decoder(mm);
+}
+
+void singleplayer()
+{
+    uint16_t solution = rand() % MM_NUM_INPUTS;
+    //mm_print_colors(solution);
+    //printf("\n");
+    play_game(solution, NULL, NULL, NULL);
 }
 
 void duel(uint8_t num_rounds)
@@ -208,13 +228,16 @@ int main()
     mm_init();
     while (true)
     {
-        printf("(d)uel or (r)ecommender? ");
+        printf("(s)ingle player, (d)uel or (r)ecommender? ");
         fflush(stdout);
         char inp[2];
         read(STDIN_FILENO, &inp, 2);
         clear_input();
         switch(inp[0])
         {
+            case 's':
+                singleplayer();
+                break;
             case 'd':
                 duel(4);
                 break;
