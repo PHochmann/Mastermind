@@ -3,7 +3,7 @@ BUILD_DIR    = ./bin/release
 SRC_DIRS     = ./src
 SRCS = $(shell find $(SRC_DIRS) -name *.c)
 CFLAGS       = -MMD -MP -std=c99 -Wall -Wextra -Werror -pedantic -Werror=vla
-LDFLAGS      = -lm
+LDFLAGS      = -lm -lreadline
 
 # Compile with debugging flags if target is debug
 ifneq (,$(filter $(MAKECMDGOALS),debug))

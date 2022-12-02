@@ -156,3 +156,20 @@ char *strip(char *str)
     }
     return res;
 }
+
+const char *first_char(const char* string)
+{
+    const char *curr = string;
+    while ((*curr < 'A' || *curr > 'z' || *curr == ' ') && *curr != '\0')
+    {
+        if (*curr == '\033')
+        {
+            curr = skip_ansi(curr);
+        }
+        else
+        {
+            curr++;
+        }
+    }
+    return curr;
+}

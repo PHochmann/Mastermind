@@ -6,10 +6,11 @@
 // A StringBuilder is just a Vector of chars
 typedef Vector StringBuilder;
 
-StringBuilder strbuilder_create(size_t start_size);
-StringBuilder strbuilder_from_heapstring(char *heap_string);
-void strbuilder_clear(StringBuilder *builder);
-void strbuilder_append(StringBuilder *builder, const char *fmt, ...);
-void vstrbuilder_append(StringBuilder *builder, const char *fmt, va_list args);
-void strbuilder_append_char(StringBuilder *builder, char c);
-char *strbuilder_to_str(const StringBuilder *builder);
+StringBuilder strb_create();
+StringBuilder strb_from_heapstring(char *heap_string);
+void strb_clear(StringBuilder *builder);
+void strb_append(StringBuilder *builder, const char *fmt, ...);
+void vstrb_append(StringBuilder *builder, const char *fmt, va_list args);
+void strb_append_char(StringBuilder *builder, char c);
+char *strb_to_str(const StringBuilder *builder);
+void strb_destroy(StringBuilder *builder);

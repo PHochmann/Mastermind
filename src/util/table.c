@@ -790,8 +790,8 @@ void add_cell_fmt(Table *table, const char *fmt, ...)
 
 void add_cell_vfmt(Table *table, const char *fmt, va_list args)
 {
-    StringBuilder builder = strbuilder_create(0);
-    vstrbuilder_append(&builder, fmt, args);
+    StringBuilder builder = strb_create(0);
+    vstrb_append(&builder, fmt, args);
     add_text_cell(table, builder.buffer, true);
 }
 

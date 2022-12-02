@@ -13,3 +13,4 @@ size_t str_split(char *str, char **out_strs, size_t num_delimiters, ...);
 size_t get_line_of_string(const char *string, size_t line_index, char **out_start);
 char *skip_ansi(const char *str);
 char *strip(char *str);
+const char *first_char(const char* string);

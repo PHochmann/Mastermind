@@ -3,15 +3,15 @@
 #include "string_builder.h"
 #include "vector.h"
 
-StringBuilder strbuilder_create(size_t start_size)
+StringBuilder strb_create()
 {
-    StringBuilder builder = vec_create(sizeof(char), start_size);
+    StringBuilder builder = vec_create(sizeof(char), 2);
     *(char*)vec_push_empty(&builder) = '\0';
     return builder;
 }
 
 // It is very important that heap_string was dynamically allocated
-StringBuilder strbuilder_from_heapstring(char *heap_string)
+StringBuilder strb_from_heapstring(char *heap_string)
 {
     size_t len = strlen(heap_string) + 1;
     StringBuilder builder = (Vector){
@@ -23,27 +23,27 @@ StringBuilder strbuilder_from_heapstring(char *heap_string)
     return builder;
 }
 
-void strbuilder_clear(StringBuilder *builder)
+void strb_clear(StringBuilder *builder)
 {
     vec_clear(builder);
     *(char*)vec_push_empty(builder) = '\0';
 }
 
-void strbuilder_append(StringBuilder *builder, const char *fmt, ...)
+void strb_append(StringBuilder *builder, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    vstrbuilder_append(builder, fmt, args);
+    vstrb_append(builder, fmt, args);
     va_end(args);
 }
 
-void strbuilder_append_char(StringBuilder *builder, char c)
+void strb_append_char(StringBuilder *builder, char c)
 {
     VEC_SET_ELEM(builder, char, builder->elem_count - 1, c);
     VEC_PUSH_ELEM(builder, char, '\0');
 }
 
-void vstrbuilder_append(StringBuilder *builder, const char *fmt, va_list args)
+void vstrb_append(StringBuilder *builder, const char *fmt, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -67,7 +67,12 @@ void vstrbuilder_append(StringBuilder *builder, const char *fmt, va_list args)
 }
 
 // Lifetime of string is tied to lifetime of StringBuilder!
-char *strbuilder_to_str(const StringBuilder *builder)
+char *strb_to_str(const StringBuilder *builder)
 {
     return builder->buffer;
+}
+
+void strb_destroy(StringBuilder *builder)
+{
+    vec_destroy(builder);
 }

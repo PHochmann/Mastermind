@@ -12,7 +12,7 @@ double measure_average(Strategy strat)
             mm_constrain(mm, recommendation, fb);
             turns++;
         }
-        mm_end_decoder(mm);
+        mm_free_match(mm);
         if (i % 10 == 0)
         {
             printf("%f\n", (float)i / MM_NUM_INPUTS);
@@ -27,3 +27,38 @@ void compare_strategies()
     printf("Minmax: %f\n", measure_average(MM_STRAT_MINMAX));
     printf("Average: %f\n", measure_average(MM_STRAT_AVERAGE));
 }
+
+#define RED "\033[38:2:255:000:000m"
+#define GRN "\033[38:2:000:255:000m"
+#define YEL "\033[38:2:250:237:000m"
+#define BLU "\033[38:2:000:000:255m"
+#define CYN "\033[38:2:065:253:254m"
+#define ORN "\033[38:2:255:165:000m"
+#define PIN "\033[38:2:219:112:147m"
+#define DRG "\033[38:2:085:107:047m"
+
+
+/*static char *col_to_str(Color col)
+{
+    switch (col)
+    {
+        case MM_COL_ORANGE:
+            return ORN "Orange" RST;
+        case MM_COL_RED:
+            return RED " Red  " RST;
+        case MM_COL_YELLOW:
+            return YEL "Yellow" RST;
+        case MM_COL_BLUE:
+            return BLU " Blue " RST;
+        case MM_COL_CYAN:
+            return CYN " Cyan " RST;
+        case MM_COL_GREEN:
+            return GRN "Green " RST;
+        case MM_COL_PINK:
+            return PIN " Pink " RST;
+        case MM_COL_DARKGREEN:
+            return DRG "DGreen" RST;
+        default:
+            return "Error ";
+    }
+}*/
