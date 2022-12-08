@@ -14,7 +14,7 @@
 #include "network.h"
 #include "../mastermind.h"
 
-void start_server(MM_Context *context, int num_players, int num_rounds, int port)
+void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 {
     printf("Starting server...\n");
     int sockets[MAX_NUM_PLAYERS];
@@ -22,7 +22,7 @@ void start_server(MM_Context *context, int num_players, int num_rounds, int port
     {
         return;
     }
-    printf("All players connected. Waiting \n");
+    printf("[1] All players connected. Waiting \n");
 
     bool nickname_validated[MAX_NUM_PLAYERS];
     NicknamePackage_Q nicknames[MAX_NUM_PLAYERS];
@@ -55,8 +55,19 @@ void start_server(MM_Context *context, int num_players, int num_rounds, int port
         else
         {
             printf("accepted\n");
+            nickname_validated_count++;
         }
     }
+
+    printf("[2] All players have nicknames. Sending rules.\n");
+    GameBeginPackage_R begin_package = (GameBeginPackage_R){
+        .max_guesses = mm_get_max_guesses(ctx),
+        .num_colors = mm_get_num_colors(ctx),
+        .num_players = num_players,
+        .num_slots = mm_get_num_slots(ctx),
+    };
+
+    send_all(num_players, sockets, &begin_package, sizeof(GameBeginPackage_R));
 
     printf("Game ended, stopping server.\n");
     for (uint8_t i = 0; i < num_players; i++)

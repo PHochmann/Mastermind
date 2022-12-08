@@ -113,6 +113,18 @@ bool read_from_all(int num_sock, int *sockets, void *buffers, size_t size)
     return true;
 }
 
+bool send_all(int num_sock, int *sockets, void *buffer, size_t size)
+{
+    for (int i = 0; i < num_sock; i++)
+    {
+        if (send(sockets[i], buffer, size, 0) < 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 int read_next(int num_sock, int *sockets, bool *exclude_mask, void *buffers, size_t size)
 {
     fd_set clients;
