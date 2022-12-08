@@ -173,3 +173,35 @@ const char *first_char(const char* string)
     }
     return curr;
 }
+
+char to_lower(char c)
+{
+    if (c >= 'A' && c <= 'Z')
+    {
+        return c - 'A' + 'a';
+    }
+    else if (c >= 'a' && c <= 'z')
+    {
+        return c;
+    }
+    else
+    {
+        return '~';
+    }
+}
+
+char to_upper(char c)
+{
+    if (c >= 'a' && c <= 'z')
+    {
+        return c - 'a' + 'A';
+    }
+    else if (c >= 'A' && c <= 'Z')
+    {
+        return c;
+    }
+    else
+    {
+        return '~';
+    }
+}

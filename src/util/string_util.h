@@ -14,3 +14,5 @@ size_t get_line_of_string(const char *string, size_t line_index, char **out_star
 char *skip_ansi(const char *str);
 char *strip(char *str);
 const char *first_char(const char* string);
+char to_lower(char c);
+char to_upper(char c);

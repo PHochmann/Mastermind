@@ -9,7 +9,7 @@ LDFLAGS      = -lm -lreadline
 ifneq (,$(filter $(MAKECMDGOALS),debug))
 	BUILD_DIR    =  ./bin/debug
 	INSTALL_PATH = .
-	CFLAGS       += -DDEBUG -g3 -O0
+	CFLAGS       += -DDEBUG -g3 -O0 -Wno-unused-variable -Wno-unused-parameter
 endif
 
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
