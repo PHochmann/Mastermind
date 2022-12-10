@@ -29,6 +29,22 @@ typedef struct
 
 typedef struct
 {
+    uint8_t dummy;
+} ReadyPackage_Q;
+
+typedef struct
+{
+    bool waiting_for_others;
+} ReadyPackage_R;
+
+typedef struct
+{
+    uint8_t dummy;
+} RoundBeginPackage_R;
+
+
+typedef struct
+{
     uint16_t guess;
 } GuessPackage_Q;
 
@@ -42,19 +58,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t dummy;
-} RoundBeginPackage_R;
-
-
-typedef struct
-{
     int points[MAX_NUM_PLAYERS];
     int num_turns[MAX_NUM_PLAYERS];
     uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
     uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
 } RoundEndPackage_R;
-
-typedef struct
-{
-    uint8_t dummy;
-} ReadyPackage_Q;

@@ -4,8 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "util/string_builder.h"
-#include "util/string_util.h"
+#include "string_builder.h"
+#include "string_util.h"
 #include "table.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

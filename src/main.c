@@ -46,8 +46,14 @@ void multiplayer(MM_Context *ctx, const char * const * colors)
                 break;
             }
             case 's':
-                start_server(ctx, 2, 1, PORT);
+            {
+                char *num_rounds_str = readline("Num rounds: ");
+                char *num_players_str = readline("Num players: ");
+                int num_rounds = atoi(num_rounds_str);
+                int num_players = atoi(num_players_str);
+                start_server(ctx, num_players, num_rounds, PORT);
                 break;
+            }
             case 'b':
                 exit = true;
                 break;

@@ -28,7 +28,7 @@ void clear_screen()
 
 void any_key()
 {
-    printf("Press enter to continue...\n");
+    printf("Press enter to continue...");
     getchar();
 }
 

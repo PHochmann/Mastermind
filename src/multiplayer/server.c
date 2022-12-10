@@ -79,8 +79,24 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 
     for (int i = 0; i < num_rounds; i++)
     {
-        RoundBeginPackage_R new_round_package;
-        send_all(num_players, sockets, &new_round_package, sizeof(RoundBeginPackage_R));
+        printf("Waiting for ACK from all players\n");
+        bool ready_mask[MAX_NUM_PLAYERS] = { false };
+        int ready_counter = 0;
+        while (ready_counter != num_players)
+        {
+            ReadyPackage_Q ready_package;
+            int player = read_next(num_players, sockets, ready_mask, &ready_package, sizeof(ReadyPackage_Q));
+            ready_mask[player] = true;
+            ready_counter++;
+            printf("Player %s ACKed\n", nicknames[player]);
+
+            ReadyPackage_R ready_answer;
+            ready_answer.waiting_for_others = (ready_counter < num_players);
+            send(sockets[player], &ready_answer, sizeof(ReadyPackage_R), 0);
+        }
+
+        RoundBeginPackage_R begin_package;
+        send_all(num_players, sockets, &begin_package, sizeof(RoundBeginPackage_R));
 
         uint16_t solution = rand() % mm_get_num_codes(ctx);
         printf("Round %d/%d\n", i + 1, num_rounds);
@@ -101,6 +117,10 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         {
             GuessPackage_Q guess;
             int player = read_next(num_players, sockets, players_finished, &guess, sizeof(GuessPackage_Q));
+
+            printf("%s guessed ", nicknames[player]);
+            print_colors(ctx, guess.guess);
+            printf("\n");
 
             FeedbackPackage_R feedback = { 0 };
             feedback.feedback = mm_get_feedback(ctx, guess.guess, solution);
@@ -123,7 +143,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 
             if (ends_round)
             {
-                printf("Player %s ended in %d turns\n", nicknames[player], mm_get_turns(matches[player]));
+                printf("%s ended in %d turns\n", nicknames[player], mm_get_turns(matches[player]));
                 players_finished[player] = true;
                 num_players_finished++;
 
@@ -159,20 +179,6 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             }
         }
         send_all(num_players, sockets, &summary, sizeof(RoundEndPackage_R));
-        
-        printf("Sent summary. Waiting for ACK from all players\n");
-
-        // Wait for all players to acknowledge
-        bool ready_mask[MAX_NUM_PLAYERS] = { false };
-        int ready_counter = 0;
-        while (ready_counter != num_players)
-        {
-            ReadyPackage_Q ready_package;
-            int player = read_next(num_players, sockets, ready_mask, &ready_package, sizeof(ReadyPackage_Q));
-            ready_mask[player] = true;
-            ready_counter++;
-            printf("Player %s ACKed\n", nicknames[player]);
-        }
     }
 
     printf("Game ended, stopping server.\n");

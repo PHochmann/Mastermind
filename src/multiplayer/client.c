@@ -57,25 +57,26 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
 
     // We have received the rules, display them:
 
-    printf("Server rules:\n");
-    printf("Players: ");
-    for (int i = 0; i < rules.num_players; i++)
-    {
-        printf("%s, ", rules.players[i]);
-    }
-    printf("\n");
-    printf("Num players: %d\n", rules.num_players);
-    printf("Num colors: %d\n", rules.num_colors);
-    printf("Num max guesses: %d\n", rules.max_guesses);
-    printf("Num rounds: %d\n", rules.num_rounds);
+    printf("~ ~ Server rules ~ ~\n");
+    printf("%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
+        rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
 
     MM_Context *ctx = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, colors);
     int total_points[MAX_NUM_PLAYERS] = { 0 };
 
     for (int i = 0; i < rules.num_rounds; i++)
     {
-        RoundBeginPackage_R begin_package;
-        recv(sock, &begin_package, sizeof(RoundBeginPackage_R), 0);
+        any_key();
+        ReadyPackage_Q ack;
+        send(sock, &ack, sizeof(ReadyPackage_Q), 0);
+        ReadyPackage_R answer;
+        recv(sock, &answer, sizeof(ReadyPackage_R), 0);
+        if (answer.waiting_for_others)
+        {
+            printf("Waiting for other players...\n");
+        }
+        RoundBeginPackage_R begin;
+        recv(sock, &begin, sizeof(RoundEndPackage_R), 0);
 
         printf("\n~ ~ Round %d/%d ~ ~\n", i + 1, rules.num_rounds);
 
@@ -119,14 +120,6 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
         for (int j = 0; j < rules.num_players; j++)
         {
             total_points[j] += summary.points[j];
-        }
-
-        any_key();
-        ReadyPackage_Q ack;
-        send(sock, &ack, sizeof(ReadyPackage_Q), 0);
-        if (i < rules.num_rounds - 1)
-        {
-            printf("Waiting for all players to be ready...\n");
         }
     }
 
