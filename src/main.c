@@ -25,6 +25,8 @@
 #define DRG "\033[38:2:085:107:047m"
 #define RST "\033[0m"
 
+#define PORT 25567
+
 void multiplayer(MM_Context *ctx, const char * const * colors)
 {
     char *input = NULL;
@@ -33,10 +35,14 @@ void multiplayer(MM_Context *ctx, const char * const * colors)
     switch (to_lower(input[0]))
     {
         case 'c':
-            play_multiplayer("127.0.0.1", 8080, colors);
+        {
+            char *ip = readline("Server IP Address: ");
+            play_multiplayer(ip, PORT, colors);
+            free(ip);
             break;
+        }
         case 's':
-            start_server(ctx, 2, 1, 8080);
+            start_server(ctx, 2, 1, PORT);
             break;
         default:
             break;

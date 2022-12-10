@@ -128,7 +128,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
                 players_finished[player] = true;
                 num_players_finished++;
             }
-            send(sockets[player], &feedback, sizeof(feedback), 0);
+            send(sockets[player], &feedback, sizeof(FeedbackPackage_R), 0);
         }
 
         // Send summary of round
@@ -173,8 +173,6 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             ready_counter++;
             printf("Player %s ACKed\n", nicknames[player]);
         }
-
-        printf("All players have acked\n");
     }
 
     printf("Game ended, stopping server.\n");

@@ -45,7 +45,7 @@ struct MM_Match
 
     bool enable_recommendation;
     uint16_t num_solutions;
-    bool *solution_space;
+    bool *solution_space; // On heap
 };
 
 void init_lookups(MM_Context *ctx);
