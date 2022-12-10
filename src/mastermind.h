@@ -46,4 +46,4 @@ MM_Match *mm_play_game(MM_Context *ctx, uint16_t solution, MM_ReadCodeFunc read_
 uint16_t mm_get_remaining_solutions(MM_Match *match);
 uint16_t mm_get_turns(MM_Match *match);
 uint8_t mm_get_history_feedback(MM_Match *match, uint8_t index);
-uint8_t mm_get_history_guess(MM_Match *match, uint8_t index);
+uint16_t mm_get_history_guess(MM_Match *match, uint8_t index);

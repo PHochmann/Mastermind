@@ -19,8 +19,6 @@ MM_Match *play_game(MM_Context *ctx, uint16_t solution)
     while (!mm_is_winning_feedback(ctx, feedback) && mm_get_turns(match) < mm_get_max_guesses(ctx))
     {
         uint16_t input = read_colors(ctx, mm_get_turns(match));
-        print_colors(ctx, input);
-        printf("\n");
         feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_feedback(ctx, feedback);

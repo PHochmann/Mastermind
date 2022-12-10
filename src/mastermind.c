@@ -368,8 +368,8 @@ uint16_t mm_recommend(MM_Match *match, MM_Strategy strat)
 
 void mm_constrain(MM_Match* match, uint16_t guess, uint8_t feedback)
 {
-    match->feedbacks[match->num_turns] = feedback;
     match->guesses[match->num_turns] = guess;
+    match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
 
     if (match->enable_recommendation)
@@ -413,7 +413,7 @@ uint8_t mm_get_history_feedback(MM_Match *match, uint8_t index)
     return match->feedbacks[index];
 }
 
-uint8_t mm_get_history_guess(MM_Match *match, uint8_t index)
+uint16_t mm_get_history_guess(MM_Match *match, uint8_t index)
 {
     return match->guesses[index];
 }

@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,7 +16,9 @@
 #include "protocol.h"
 #include "console.h"
 
-int connect_to_server(const char *ip, int port)
+#define RETRY_WAIT_MS 100
+
+int connect_to_server(const char *ip, int port, int retries)
 {
     int socket_to_server = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_to_server < 0)
@@ -31,14 +34,24 @@ int connect_to_server(const char *ip, int port)
     server_ip.sin_port = htons(port);
     server_ip.sin_addr = serv_addr;
 
-    if (connect(socket_to_server, (struct sockaddr*)&server_ip, sizeof(server_ip)) == -1)
+    while (retries != 0)
     {
-        printf("Error connecting to server\n");
-        close(socket_to_server);
-        return -1;
+        if (connect(socket_to_server, (struct sockaddr*)&server_ip, sizeof(server_ip)) == -1)
+        {
+            if (retries > 0)
+            {
+                retries--;
+            }
+            usleep(RETRY_WAIT_MS * 1000);
+        }
+        else
+        {
+            return socket_to_server;
+        }
     }
 
-    return socket_to_server;
+    printf("Error connecting to server.\n");
+    return -1;
 }
 
 bool accept_clients(int port, int num_clients, int *sockets)
@@ -60,9 +73,10 @@ bool accept_clients(int port, int num_clients, int *sockets)
     // Binds address to server's socket
     // Client calls connect() on the same address
     // Signature of bind() and connect() is the same
-    if (bind(listen_sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) == -1)
+    int bind_code = bind(listen_sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr));
+    if (bind_code < 0)
     {
-        printf("Failed binding address to socket\n");
+        printf("Failed binding address to socket: %d\n", bind_code);
         close(listen_sock);
         return false;
     }
@@ -125,7 +139,7 @@ bool send_all(int num_sock, int *sockets, void *buffer, size_t size)
     return true;
 }
 
-int read_next(int num_sock, int *sockets, bool *exclude_mask, void *buffers, size_t size)
+int read_next(int num_sock, int *sockets, bool *exclude_mask, void *buffer, size_t size)
 {
     fd_set clients;
     FD_ZERO(&clients);
@@ -146,7 +160,7 @@ int read_next(int num_sock, int *sockets, bool *exclude_mask, void *buffers, siz
     {
         if (!exclude_mask[i] && FD_ISSET(sockets[i], &clients))
         {
-            if (recv(sockets[i], (uint8_t*)buffers + i * size, size, 0) < 0)
+            if (recv(sockets[i], (uint8_t*)buffer, size, 0) < 0)
             {
                 return -1;
             }

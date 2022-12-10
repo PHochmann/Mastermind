@@ -183,7 +183,6 @@ static void print_text(const struct Cell *cell,
             break;
         case V_ALIGN_CENTER:
             actual_line = line_index - (total_height - cell->text_height) / 2;
-            //printf("~~%zu~~", total_height);
             break;
         case V_ALIGN_BOTTOM:
             actual_line = line_index - (total_height - cell->text_height);
@@ -238,8 +237,7 @@ static size_t get_total_width(const Table *table, const size_t *col_widths, stru
     for (size_t i = 0; i < cell->span_x; i++)
     {
         if (i != 0
-            && i < cell->span_x - 1
-            && table->border_left_counters[cell->x + i + 1] > 0)
+            && table->border_left_counters[cell->x + i] > 0)
         {
             sum++;
         }
@@ -1010,12 +1008,10 @@ void set_all_vlines(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
 
-    size_t cc = table->curr_col;
-    for (size_t i = 1; i < table->num_cols; i++)
+    for (size_t i = 1; i < table->num_cols - 1; i++)
     {
         set_vline(table, i, style);
     }
-    table->curr_col = cc;
 }
 
 // Printing

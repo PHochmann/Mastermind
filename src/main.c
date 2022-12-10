@@ -25,15 +25,15 @@
 #define DRG "\033[38:2:085:107:047m"
 #define RST "\033[0m"
 
-
-void multiplayer(MM_Context *ctx)
+void multiplayer(MM_Context *ctx, const char * const * colors)
 {
     char *input = NULL;
     input = readline("(c)lient or (s)erver? ");
+    clear_input();
     switch (to_lower(input[0]))
     {
         case 'c':
-            play_multiplayer("127.0.0.1", 8080);
+            play_multiplayer("127.0.0.1", 8080, colors);
             break;
         case 's':
             start_server(ctx, 2, 1, 8080);
@@ -82,7 +82,7 @@ int main()
                 play_recommender(very_easy_ctx, MM_STRAT_AVERAGE);
                 break;
             case 'm':
-                multiplayer(easy_ctx);
+                multiplayer(easy_ctx, colors);
                 break;
             case 'e':
                 exit = true;
