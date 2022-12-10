@@ -1016,23 +1016,6 @@ void set_all_vlines(Table *table, TableBorderStyle style)
 
 // Printing
 
-#ifdef DEBUG
-__attribute__((unused))
-static void print_debug(Table *table)
-{
-    size_t col_widths[TABLE_MAX_COLS];
-    size_t *row_heights = malloc(table->num_rows * sizeof(size_t));
-    get_dimensions(table, col_widths, row_heights);
-
-    printf("Table dimensions: #rows: %zu, #cols: %zu\n", table->num_rows, table->num_cols);
-    for (size_t i = 0; i < table->num_rows; i++) printf("%zu ", row_heights[i]);
-    printf("; ");
-    for (size_t i = 0; i < table->num_cols; i++) printf("%zu ", col_widths[i]);
-    printf("\n");
-    free(row_heights);
-}
-#endif
-
 /*
 Summary: Prints table to stdout
 */
@@ -1053,10 +1036,6 @@ void fprint_table(Table *table, FILE *stream)
     size_t *row_heights = malloc(table->num_rows * sizeof(size_t));
     get_dimensions(table, col_widths, row_heights);
     override_superfluous_lines(table, col_widths[table->num_cols - 1], row_heights[table->num_rows - 1]);
-    
-    //#ifdef DEBUG
-    //print_debug(table);
-    //#endif
 
     size_t line_indices[TABLE_MAX_COLS];
     for (size_t i = 0; i < table->num_cols; i++) line_indices[i] = 0;

@@ -88,7 +88,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             int player = read_next(num_players, sockets, ready_mask, &ready_package, sizeof(ReadyPackage_Q));
             ready_mask[player] = true;
             ready_counter++;
-            printf("Player %s ACKed\n", nicknames[player]);
+            printf("%s ACKed\n", nicknames[player]);
 
             ReadyPackage_R ready_answer;
             ready_answer.waiting_for_others = (ready_counter < num_players);

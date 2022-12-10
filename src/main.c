@@ -11,7 +11,6 @@
 #include "table.h"
 #include "console.h"
 #include "string_util.h"
-#include "singleplayer.h" 
 #include "multiplayer/server.h"
 #include "multiplayer/client.h"
 
@@ -27,7 +26,33 @@
 
 #define PORT 25567
 
-void multiplayer(MM_Context *ctx, const char * const * colors)
+static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
+{
+    uint8_t feedback = 0;
+    MM_Match *match = mm_new_match(ctx, false);
+    while (!mm_is_winning_feedback(ctx, feedback) && mm_get_turns(match) < mm_get_max_guesses(ctx))
+    {
+        uint16_t input = read_colors(ctx, mm_get_turns(match));
+        feedback = mm_get_feedback(ctx, input, solution);
+        mm_constrain(match, input, feedback);
+        print_feedback(ctx, feedback);
+        printf("\n");
+    }
+    if (mm_get_turns(match) == mm_get_max_guesses(ctx) + 1)
+    {
+        print_losing_message(mm_get_max_guesses(ctx));
+        printf("Solution: ");
+        print_colors(ctx, solution);
+        printf("\n\n");
+    }
+    else
+    {
+        print_winning_message(mm_get_turns(match));
+    }
+    return match;
+}
+
+static void multiplayer(MM_Context *ctx, const char * const * colors)
 {
     char *input = NULL;
     while (true)
@@ -41,7 +66,7 @@ void multiplayer(MM_Context *ctx, const char * const * colors)
             case 'c':
             {
                 char *ip = readline("Server IP Address: ");
-                play_multiplayer(ip, PORT, colors);
+                play_client(ip, PORT, colors);
                 free(ip);
                 break;
             }
@@ -66,9 +91,38 @@ void multiplayer(MM_Context *ctx, const char * const * colors)
     }
 }
 
+static void recommender(MM_Context *ctx, MM_Strategy strategy)
+{
+    MM_Match *match = mm_new_match(ctx, true);
+    uint8_t feedback = 0;
+    while (!mm_is_winning_feedback(ctx, feedback))
+    {
+        uint16_t recommendation = mm_recommend(match, strategy);
+        print_colors(ctx, recommendation);
+        printf("\n");
+        feedback = read_feedback(ctx);
+        print_feedback(ctx, feedback);
+        printf("\n");
+        mm_constrain(match, recommendation, feedback);
+        if (mm_get_remaining_solutions(match) == 0)
+        {
+            printf("That's not possible - inconsistent feedback given. Game aborted.\n\n");
+            mm_free_match(match);
+            return;
+        }
+    }
+    print_winning_message(mm_get_turns(match));
+    mm_free_match(match);
+}
+
+static void singleplayer(MM_Context *ctx)
+{
+    mm_free_match(play_game(ctx, rand() % mm_get_num_codes(ctx)));
+}
 
 int main()
 {
+    printf("Mastermind v1.0.0 (c) 2022 Philipp Hochmann\n");
     srand(time(NULL));
 
     const char * const colors[] = {
@@ -88,20 +142,17 @@ int main()
 
     while (true)
     {
-        char *input = readline("(s)ingle player, local (d)uel, (m)ultiplayer, (r)ecommender or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (m)ultiplayer, (r)ecommender or (e)xit? ");
         clear_input();
         bool exit = false;
 
         switch (to_lower(input[0]))
         {
             case 's':
-                play_singleplayer(very_easy_ctx);
-                break;
-            case 'd':
-                play_duel(very_easy_ctx, 2);
+                singleplayer(very_easy_ctx);
                 break;
             case 'r':
-                play_recommender(very_easy_ctx, MM_STRAT_AVERAGE);
+                recommender(very_easy_ctx, MM_STRAT_AVERAGE);
                 break;
             case 'm':
                 multiplayer(easy_ctx, colors);

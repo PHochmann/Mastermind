@@ -247,7 +247,6 @@ void print_round_summary_table(MM_Context *ctx,
     }
     
     next_row(tbl);
-    set_vline(tbl, 3, BORDER_SINGLE);
     set_hline(tbl, BORDER_SINGLE);
 
     for (int i = 0; i < max_turns + 1; i++)
@@ -278,6 +277,12 @@ void print_round_summary_table(MM_Context *ctx,
         add_cell_fmt(tbl, " %d turns", turns[i]);
     }
     next_row(tbl);
+
+    for (int i = 0; i < num_players - 1; i++)
+    {
+        set_vline(tbl, i * 3, BORDER_SINGLE);
+    }
+
     make_boxed(tbl, BORDER_SINGLE);
     print_table(tbl);
     free_table(tbl);

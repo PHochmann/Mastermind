@@ -14,7 +14,7 @@
 #include "../util/string_builder.h"
 #include "../util/console.h"
 
-void play_multiplayer(const char *ip, int port, const char * const * colors)
+void play_client(const char *ip, int port, const char * const * colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
     int sock = connect_to_server(ip, port, -1);
