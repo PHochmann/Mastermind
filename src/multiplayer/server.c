@@ -17,7 +17,6 @@
 
 void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 {
-    printf("Starting server...\n");
     int sockets[MAX_NUM_PLAYERS];
     if (!accept_clients(port, num_players, sockets))
     {
@@ -26,7 +25,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     printf("All players connected. Validating nicknames... \n");
 
     bool nickname_validated[MAX_NUM_PLAYERS];
-    char nicknames[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_LENGTH];
+    char nicknames[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES];
     int nickname_validated_count = 0;
 
     while (nickname_validated_count != num_players)
@@ -59,7 +58,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         else
         {
             printf("accepted\n");
-            strncpy(nicknames[player], next_nickname.name, MAX_PLAYER_NAME_LENGTH);
+            strncpy(nicknames[player], next_nickname.name, MAX_PLAYER_NAME_BYTES);
             nickname_validated_count++;
         }
     }
@@ -74,7 +73,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     };
     for (int i = 0; i < num_players; i++)
     {
-        strncpy(begin_package.players[i], nicknames[i], MAX_PLAYER_NAME_LENGTH);
+        strncpy(begin_package.players[i], nicknames[i], MAX_PLAYER_NAME_BYTES);
     }
     send_all(num_players, sockets, &begin_package, sizeof(GameBeginPackage_R));
 
@@ -103,7 +102,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             GuessPackage_Q guess;
             int player = read_next(num_players, sockets, players_finished, &guess, sizeof(GuessPackage_Q));
 
-            FeedbackPackage_R feedback;
+            FeedbackPackage_R feedback = { 0 };
             feedback.feedback = mm_get_feedback(ctx, guess.guess, solution);
             mm_constrain(matches[player], guess.guess, feedback.feedback);
             bool ends_round = false;
@@ -127,12 +126,17 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
                 printf("Player %s ended in %d turns\n", nicknames[player], mm_get_turns(matches[player]));
                 players_finished[player] = true;
                 num_players_finished++;
+
+                if (num_players_finished < num_players)
+                {
+                    feedback.waiting_for_others = true;
+                }
             }
             send(sockets[player], &feedback, sizeof(FeedbackPackage_R), 0);
         }
 
         // Send summary of round
-        RoundEndPackage_R summary;
+        RoundEndPackage_R summary = { 0 };
         int min_turns = INT16_MAX;
         for (int i = 0; i < num_players; i++)
         {
@@ -152,10 +156,6 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             if (mm_get_turns(matches[i]) == min_turns)
             {
                 summary.points[i] = 1;
-            }
-            else
-            {
-                summary.points[i] = 0;
             }
         }
         send_all(num_players, sockets, &summary, sizeof(RoundEndPackage_R));

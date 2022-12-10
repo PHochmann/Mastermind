@@ -87,6 +87,10 @@ bool accept_clients(int port, int num_clients, int *sockets)
         close(listen_sock);
         return false;
     }
+    else
+    {
+        printf("Listening on port %d\n", port);
+    }
 
     for (uint8_t i = 0; i < num_clients; i++)
     {

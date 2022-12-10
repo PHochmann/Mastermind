@@ -30,24 +30,34 @@
 void multiplayer(MM_Context *ctx, const char * const * colors)
 {
     char *input = NULL;
-    input = readline("(c)lient or (s)erver? ");
-    clear_input();
-    switch (to_lower(input[0]))
+    while (true)
     {
-        case 'c':
+        input = readline("(c)lient, (s)erver or (b)ack? ");
+        clear_input();
+        bool exit = false;
+
+        switch (to_lower(input[0]))
         {
-            char *ip = readline("Server IP Address: ");
-            play_multiplayer(ip, PORT, colors);
-            free(ip);
-            break;
+            case 'c':
+            {
+                char *ip = readline("Server IP Address: ");
+                play_multiplayer(ip, PORT, colors);
+                free(ip);
+                break;
+            }
+            case 's':
+                start_server(ctx, 2, 1, PORT);
+                break;
+            case 'b':
+                exit = true;
+                break;
         }
-        case 's':
-            start_server(ctx, 2, 1, PORT);
-            break;
-        default:
-            break;
+        free(input);
+        if (exit)
+        {
+            return;
+        }
     }
-    free(input);
 }
 
 

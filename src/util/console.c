@@ -49,6 +49,18 @@ void print_losing_message(uint8_t num_max_guesses)
 
 // IO Functions
 
+char *readline_fmt(const char *fmt, ...)
+{
+    StringBuilder builder = strb_create();
+    va_list args;
+    va_start(args, fmt);
+    vstrb_append(&builder, fmt, args);
+    va_end(args);
+    char *result = readline(strb_to_str(&builder));
+    strb_destroy(&builder);
+    return result;
+}
+
 uint8_t read_feedback(MM_Context *ctx)
 {
     StringBuilder pb = strb_create();
@@ -155,7 +167,7 @@ void print_feedback(MM_Context *ctx, uint8_t feedback)
 }
 
 void print_game_summary_table(int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_LENGTH],
+    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
     int total_points[MAX_NUM_PLAYERS],
     int best_points)
 {
@@ -205,7 +217,7 @@ void print_game_summary_table(int num_players,
 
 void print_round_summary_table(MM_Context *ctx,
     int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_LENGTH],
+    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
     int turns[MAX_NUM_PLAYERS],
     uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
     uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],

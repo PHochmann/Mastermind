@@ -2,14 +2,13 @@
 #include <stdint.h>
 #include "../mastermind.h"
 
-#define MAX_NUM_PLAYERS          2
-#define MAX_PLAYER_NAME_LENGTH  10
-#define MAX_COLOR_LENGTH        20
+#define MAX_NUM_PLAYERS          4
+#define MAX_PLAYER_NAME_BYTES   11 // Including \0
 #define MAX_NUM_ROUNDS          10
 
 typedef struct
 {
-    char name[MAX_PLAYER_NAME_LENGTH];
+    char name[MAX_PLAYER_NAME_BYTES];
 } NicknamePackage_Q;
 
 typedef struct
@@ -24,9 +23,8 @@ typedef struct
     int max_guesses;
     int num_slots;
     int num_players;
-    char players[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_LENGTH];
+    char players[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES];
     int num_colors;
-    char colors[MAX_NUM_COLORS][MAX_COLOR_LENGTH];
 } GameBeginPackage_R;
 
 typedef struct
@@ -39,6 +37,7 @@ typedef struct
     uint8_t feedback;
     bool lost;
     uint16_t solution;
+    bool waiting_for_others;
 } FeedbackPackage_R;
 
 typedef struct

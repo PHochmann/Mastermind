@@ -14,23 +14,6 @@
 #include "../util/string_builder.h"
 #include "../util/console.h"
 
-bool send_nickname(int fd, const char *nickname)
-{
-    NicknamePackage_Q request;
-    NicknamePackage_R response;
-    strncpy(request.name, nickname, MAX_PLAYER_NAME_LENGTH);
-
-    if (send(fd, &request, sizeof(NicknamePackage_Q), 0) < 0)
-    {
-        return false;
-    }
-    else if (recv(fd, &response, sizeof(NicknamePackage_R), 0) < 0)
-    {
-        return false;
-    }
-    return response.is_accepted;
-}
-
 void play_multiplayer(const char *ip, int port, const char * const * colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
@@ -44,15 +27,15 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
     while (!nickname_response.is_accepted)
     {
         free(nickname);
-        nickname = readline("Enter your nickname (max. 9 characters): ");
-        if (strlen(nickname) >= MAX_PLAYER_NAME_LENGTH)
+        nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
+        if (strlen(nickname) >= MAX_PLAYER_NAME_BYTES)
         {
             printf("Name too long\n");
         }
         else
         {
             NicknamePackage_Q request;
-            strncpy(request.name, nickname, MAX_PLAYER_NAME_LENGTH);
+            strncpy(request.name, nickname, MAX_PLAYER_NAME_BYTES);
             send(sock, &request, sizeof(NicknamePackage_Q), 0);
             recv(sock, &nickname_response, sizeof(NicknamePackage_R), 0);
 
@@ -91,7 +74,6 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
 
     for (int i = 0; i < rules.num_rounds; i++)
     {
-        printf("Waiting for server to start next round...\n");
         RoundBeginPackage_R begin_package;
         recv(sock, &begin_package, sizeof(RoundBeginPackage_R), 0);
 
@@ -117,13 +99,17 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
                 printf("~ ~ Solution: ");
                 print_colors(ctx, feedback_package.solution);
                 printf(" ~ ~\n");
-                printf("~ ~ Waiting for other players to finish... ~ ~\n");
                 finished = true;
             }
             else if (mm_is_winning_feedback(ctx, feedback_package.feedback))
             {
-                printf("~ ~ You guessed right! Waiting for other players to finish... ~ ~\n");
+                printf("~ ~ You guessed right! ~ ~\n");
                 finished = true;
+            }
+
+            if (finished && feedback_package.waiting_for_others)
+            {
+                printf("Waiting for all players to finish...\n");
             }
         }
 
@@ -138,6 +124,10 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
         any_key();
         ReadyPackage_Q ack;
         send(sock, &ack, sizeof(ReadyPackage_Q), 0);
+        if (i < rules.num_rounds - 1)
+        {
+            printf("Waiting for all players to be ready...\n");
+        }
     }
 
     int best_points = 0;
