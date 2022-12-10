@@ -1008,7 +1008,7 @@ void set_all_vlines(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
 
-    for (size_t i = 1; i < table->num_cols - 1; i++)
+    for (size_t i = 1; i < table->num_cols; i++)
     {
         set_vline(table, i, style);
     }

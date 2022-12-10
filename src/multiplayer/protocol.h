@@ -15,6 +15,7 @@ typedef struct
 typedef struct
 {
     bool is_accepted;
+    bool waiting_for_others;
 } NicknamePackage_R;
 
 typedef struct

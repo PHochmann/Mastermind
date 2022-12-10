@@ -31,15 +31,6 @@ bool send_nickname(int fd, const char *nickname)
     return response.is_accepted;
 }
 
-bool receive_rules(int fd, GameBeginPackage_R *rules)
-{
-    if (recv(fd, rules, sizeof(GameBeginPackage_R), 0) < 0)
-    {
-        return false;
-    }
-    return true;
-}
-
 void play_multiplayer(const char *ip, int port, const char * const * colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
@@ -49,36 +40,37 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
 
     // Request nickname
     char *nickname = NULL;
-    bool validated = false;
-    while (!validated)
+    NicknamePackage_R nickname_response = { 0 };
+    while (!nickname_response.is_accepted)
     {
         free(nickname);
         nickname = readline("Enter your nickname (max. 9 characters): ");
         if (strlen(nickname) >= MAX_PLAYER_NAME_LENGTH)
         {
             printf("Name too long\n");
-            validated = false;
-        }
-        else if (!send_nickname(sock, nickname))
-        {
-            printf("Name already taken, please use another.\n");
-            validated = false;
         }
         else
         {
-            validated = true;
+            NicknamePackage_Q request;
+            strncpy(request.name, nickname, MAX_PLAYER_NAME_LENGTH);
+            send(sock, &request, sizeof(NicknamePackage_Q), 0);
+            recv(sock, &nickname_response, sizeof(NicknamePackage_R), 0);
+
+            if (!nickname_response.is_accepted)
+            {
+                printf("Name already taken, please use another.\n");
+            }
         }
     }
 
-    printf("Waiting for the other players...\n");
+    if (nickname_response.waiting_for_others)
+    {
+        printf("Waiting for the other players...\n");
+    }
 
     // Nickname is accepted, wait for rules
     GameBeginPackage_R rules;
-    if (!receive_rules(sock, &rules))
-    {
-        printf("Communication error\n");
-        goto exit;
-    }
+    recv(sock, &rules, sizeof(GameBeginPackage_R), 0);
 
     // We have received the rules, display them:
 
@@ -106,10 +98,12 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
         printf("\n~ ~ Round %d/%d ~ ~\n", i + 1, rules.num_rounds);
 
         bool finished = false;
+        int counter = 0;
         while (!finished)
         {
             GuessPackage_Q guess_package;
-            guess_package.guess = read_colors(ctx, i);
+            guess_package.guess = read_colors(ctx, counter);
+            counter++;
             send(sock, &guess_package, sizeof(GuessPackage_Q), 0);
 
             FeedbackPackage_R feedback_package;
@@ -156,9 +150,7 @@ void play_multiplayer(const char *ip, int port, const char * const * colors)
     }
 
     print_game_summary_table(rules.num_players, rules.players, total_points, best_points);
-
-exit:
-    printf("Game ended, disconnected from server\n");
+    printf("\n");
     free(nickname);
     close(sock);
 }

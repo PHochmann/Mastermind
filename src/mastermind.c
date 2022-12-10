@@ -10,6 +10,7 @@
 
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a >= b ? a : b)
+#define GAME_OVER_PENALTY 1
 
 struct MM_Context
 {
@@ -371,6 +372,10 @@ void mm_constrain(MM_Match* match, uint16_t guess, uint8_t feedback)
     match->guesses[match->num_turns] = guess;
     match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
+    if (match->num_turns == match->ctx->max_guesses)
+    {
+        match->num_turns += GAME_OVER_PENALTY;
+    }
 
     if (match->enable_recommendation)
     {

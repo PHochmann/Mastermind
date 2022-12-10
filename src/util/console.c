@@ -168,6 +168,7 @@ void print_game_summary_table(int num_players,
 
     for (int i = 0; i < num_players; i++)
     {
+        override_horizontal_alignment(tbl, H_ALIGN_CENTER);
         add_cell_fmt(tbl, " %s ", names[i]);
     }
 
