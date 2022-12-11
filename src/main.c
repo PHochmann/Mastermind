@@ -28,6 +28,8 @@
 
 static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
 {
+    //print_colors(ctx, solution);
+    //printf("\n");
     uint8_t feedback = 0;
     MM_Match *match = mm_new_match(ctx, false);
     while (!mm_is_winning_feedback(ctx, feedback) && mm_get_turns(match) < mm_get_max_guesses(ctx))

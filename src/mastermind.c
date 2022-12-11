@@ -372,7 +372,8 @@ void mm_constrain(MM_Match* match, uint16_t guess, uint8_t feedback)
     match->guesses[match->num_turns] = guess;
     match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
-    if (match->num_turns == match->ctx->max_guesses)
+    if (match->num_turns == match->ctx->max_guesses
+        && !mm_is_winning_feedback(match->ctx, feedback))
     {
         match->num_turns += GAME_OVER_PENALTY;
     }

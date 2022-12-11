@@ -42,7 +42,6 @@ typedef struct
     uint8_t dummy;
 } RoundBeginPackage_R;
 
-
 typedef struct
 {
     uint16_t guess;
