@@ -10,7 +10,6 @@
 
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a >= b ? a : b)
-#define GAME_OVER_PENALTY 1
 
 struct MM_Context
 {
@@ -372,11 +371,6 @@ void mm_constrain(MM_Match* match, uint16_t guess, uint8_t feedback)
     match->guesses[match->num_turns] = guess;
     match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
-    if (match->num_turns == match->ctx->max_guesses
-        && !mm_is_winning_feedback(match->ctx, feedback))
-    {
-        match->num_turns += GAME_OVER_PENALTY;
-    }
 
     if (match->enable_recommendation)
     {
@@ -422,4 +416,20 @@ uint8_t mm_get_history_feedback(MM_Match *match, uint8_t index)
 uint16_t mm_get_history_guess(MM_Match *match, uint8_t index)
 {
     return match->guesses[index];
+}
+
+MM_MatchState mm_get_state(MM_Match *match)
+{
+    if (match->num_turns < match->ctx->max_guesses)
+    {
+        return MM_MATCH_PENDING;
+    }
+    else if (mm_is_winning_feedback(match->ctx, match->feedbacks[match->num_turns - 1]))
+    {
+        return MM_MATCH_WON;
+    }
+    else
+    {
+        return MM_MATCH_LOST;
+    }
 }

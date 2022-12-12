@@ -28,11 +28,9 @@
 
 static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
 {
-    //print_colors(ctx, solution);
-    //printf("\n");
     uint8_t feedback = 0;
     MM_Match *match = mm_new_match(ctx, false);
-    while (!mm_is_winning_feedback(ctx, feedback) && mm_get_turns(match) < mm_get_max_guesses(ctx))
+    while (mm_get_state(match) != MM_MATCH_PENDING)
     {
         uint16_t input = read_colors(ctx, mm_get_turns(match));
         feedback = mm_get_feedback(ctx, input, solution);
@@ -40,16 +38,16 @@ static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
         print_feedback(ctx, feedback);
         printf("\n");
     }
-    if (mm_get_turns(match) == mm_get_max_guesses(ctx) + 1)
+    if (mm_get_state(match) == MM_MATCH_WON)
+    {
+        print_winning_message(mm_get_turns(match));
+    }
+    else
     {
         print_losing_message(mm_get_max_guesses(ctx));
         printf("Solution: ");
         print_colors(ctx, solution);
         printf("\n\n");
-    }
-    else
-    {
-        print_winning_message(mm_get_turns(match));
     }
     return match;
 }

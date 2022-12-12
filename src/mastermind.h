@@ -15,6 +15,13 @@ typedef enum
     MM_NUM_STRATEGIES
 } MM_Strategy;
 
+typedef enum
+{
+    MM_MATCH_PENDING,
+    MM_MATCH_WON,
+    MM_MATCH_LOST
+} MM_MatchState;
+
 typedef struct MM_Context MM_Context;
 typedef struct MM_Match MM_Match;
 
@@ -47,3 +54,4 @@ uint16_t mm_get_remaining_solutions(MM_Match *match);
 uint16_t mm_get_turns(MM_Match *match);
 uint8_t mm_get_history_feedback(MM_Match *match, uint8_t index);
 uint16_t mm_get_history_guess(MM_Match *match, uint8_t index);
+MM_MatchState mm_get_state(MM_Match *match);

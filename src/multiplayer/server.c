@@ -127,18 +127,19 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             mm_constrain(matches[player], guess.guess, feedback.feedback);
             bool ends_round = false;
 
-            if (mm_is_winning_feedback(ctx, feedback.feedback))
+            switch (mm_get_state(matches[player]))
             {
-                ends_round = true;
-            }
-            else
-            {
-                if (mm_get_turns(matches[player]) == mm_get_max_guesses(ctx))
-                {
+                case MM_MATCH_PENDING:
+                    break;
+                case MM_MATCH_WON:
+                    ends_round = true;
+                    feedback.lost = false;
+                    break;
+                case MM_MATCH_LOST:
                     ends_round = true;
                     feedback.lost = true;
                     feedback.solution = solution;
-                }
+                    break;
             }
 
             if (ends_round)

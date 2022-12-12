@@ -278,7 +278,7 @@ void print_round_summary_table(MM_Context *ctx,
     }
     next_row(tbl);
 
-    for (int i = 0; i < num_players - 1; i++)
+    for (int i = 1; i < num_players; i++)
     {
         set_vline(tbl, i * 3, BORDER_SINGLE);
     }
