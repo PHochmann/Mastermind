@@ -1,7 +1,7 @@
-#include <readline/readline.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <readline/readline.h>
 
 #include "console.h"
 #include "multiplayer/protocol.h"

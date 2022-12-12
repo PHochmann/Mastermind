@@ -7,7 +7,8 @@ IndentCaseLabels: false
 AlignConsecutiveAssignments: Consecutive
 AlignConsecutiveMacros: true
 Cpp11BracedListStyle: false
-#BreakBeforeBinaryOperators: All
+BreakBeforeBinaryOperators: All
 BinaryOperatorStyle: NonAssignment
 AllowShortFunctionsOnASingleLine: Empty
 ColumnLimit: 0
+SortIncludes: false

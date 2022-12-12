@@ -149,8 +149,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 
             if (ends_round)
             {
-                printf("%s ended in %d turns\n", nicknames[player],
-                       mm_get_turns(matches[player]));
+                printf("%s ended in %d turns\n", nicknames[player], mm_get_turns(matches[player]));
                 players_finished[player] = true;
                 num_players_finished++;
 
@@ -167,8 +166,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         int min_turns             = INT16_MAX;
         for (int i = 0; i < num_players; i++)
         {
-            if (mm_get_turns(matches[i]) < min_turns &&
-                mm_get_state(matches[i]) == MM_MATCH_WON)
+            if (mm_get_turns(matches[i]) < min_turns)
             {
                 min_turns = mm_get_turns(matches[i]);
             }
@@ -181,7 +179,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
                 summary.guesses[i][j]   = mm_get_history_guess(matches[i], j);
                 summary.feedbacks[i][j] = mm_get_history_feedback(matches[i], j);
             }
-            if (mm_get_turns(matches[i]) == min_turns)
+            if (mm_get_turns(matches[i]) == min_turns && mm_get_state(matches[i]) == MM_MATCH_WON)
             {
                 points[i]++;
                 summary.points[i] = points[i];
@@ -191,7 +189,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     }
 
     printf("Game ended, stopping server.\n");
-    for (uint8_t i = 0; i < num_players; i++)
+    for (int i = 0; i < num_players; i++)
     {
         close(sockets[i]);
     }
