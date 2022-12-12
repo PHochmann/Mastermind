@@ -1,19 +1,19 @@
-#include <stdlib.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "server.h"
-#include "protocol.h"
-#include "network.h"
 #include "../mastermind.h"
 #include "../util/console.h"
+#include "network.h"
+#include "protocol.h"
+#include "server.h"
 
 void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 {
@@ -31,7 +31,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     while (nickname_validated_count != num_players)
     {
         NicknamePackage_Q next_nickname;
-        int player = read_next(num_players, sockets, nickname_validated, &next_nickname, sizeof(NicknamePackage_Q));
+        int player     = read_next(num_players, sockets, nickname_validated, &next_nickname, sizeof(NicknamePackage_Q));
         bool duplicate = false;
         for (int i = 0; i < num_players; i++)
         {
@@ -46,8 +46,8 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         }
 
         NicknamePackage_R response;
-        nickname_validated[player] = !duplicate;
-        response.is_accepted = !duplicate;
+        nickname_validated[player]  = !duplicate;
+        response.is_accepted        = !duplicate;
         response.waiting_for_others = (nickname_validated_count < num_players - 1);
         send(sockets[player], &response, sizeof(NicknamePackage_R), 0);
         printf("Got nickname from player[%d]: %s, ", player, next_nickname.name);
@@ -58,7 +58,8 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         else
         {
             printf("accepted\n");
-            strncpy(nicknames[player], next_nickname.name, MAX_PLAYER_NAME_BYTES);
+            strncpy(nicknames[player], next_nickname.name,
+                    MAX_PLAYER_NAME_BYTES);
             nickname_validated_count++;
         }
     }
@@ -66,10 +67,10 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     printf("All players have nicknames. Sending server rules.\n");
     GameBeginPackage_R begin_package = (GameBeginPackage_R){
         .num_players = num_players,
-        .num_rounds = num_rounds,
+        .num_rounds  = num_rounds,
         .max_guesses = mm_get_max_guesses(ctx),
-        .num_colors = mm_get_num_colors(ctx),
-        .num_slots = mm_get_num_slots(ctx),
+        .num_colors  = mm_get_num_colors(ctx),
+        .num_slots   = mm_get_num_slots(ctx),
     };
     for (int i = 0; i < num_players; i++)
     {
@@ -77,15 +78,17 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     }
     send_all(num_players, sockets, &begin_package, sizeof(GameBeginPackage_R));
 
+    int points[MAX_NUM_PLAYERS] = { 0 };
+
     for (int i = 0; i < num_rounds; i++)
     {
         printf("Waiting for ACK from all players\n");
         bool ready_mask[MAX_NUM_PLAYERS] = { false };
-        int ready_counter = 0;
+        int ready_counter                = 0;
         while (ready_counter != num_players)
         {
             ReadyPackage_Q ready_package;
-            int player = read_next(num_players, sockets, ready_mask, &ready_package, sizeof(ReadyPackage_Q));
+            int player         = read_next(num_players, sockets, ready_mask, &ready_package, sizeof(ReadyPackage_Q));
             ready_mask[player] = true;
             ready_counter++;
             printf("%s ACKed\n", nicknames[player]);
@@ -96,7 +99,8 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         }
 
         RoundBeginPackage_R begin_package;
-        send_all(num_players, sockets, &begin_package, sizeof(RoundBeginPackage_R));
+        send_all(num_players, sockets, &begin_package,
+                 sizeof(RoundBeginPackage_R));
 
         uint16_t solution = rand() % mm_get_num_codes(ctx);
         printf("Round %d/%d\n", i + 1, num_rounds);
@@ -111,40 +115,42 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         }
 
         bool players_finished[MAX_NUM_PLAYERS] = { false };
-        int num_players_finished = 0;
+        int num_players_finished               = 0;
 
         while (num_players_finished != num_players)
         {
             GuessPackage_Q guess;
-            int player = read_next(num_players, sockets, players_finished, &guess, sizeof(GuessPackage_Q));
+            int player = read_next(num_players, sockets, players_finished,
+                                   &guess, sizeof(GuessPackage_Q));
 
             printf("%s guessed ", nicknames[player]);
             print_colors(ctx, guess.guess);
             printf("\n");
 
             FeedbackPackage_R feedback = { 0 };
-            feedback.feedback = mm_get_feedback(ctx, guess.guess, solution);
+            feedback.feedback          = mm_get_feedback(ctx, guess.guess, solution);
             mm_constrain(matches[player], guess.guess, feedback.feedback);
             bool ends_round = false;
 
             switch (mm_get_state(matches[player]))
             {
-                case MM_MATCH_PENDING:
-                    break;
-                case MM_MATCH_WON:
-                    ends_round = true;
-                    feedback.lost = false;
-                    break;
-                case MM_MATCH_LOST:
-                    ends_round = true;
-                    feedback.lost = true;
-                    feedback.solution = solution;
-                    break;
+            case MM_MATCH_PENDING:
+                break;
+            case MM_MATCH_WON:
+                ends_round    = true;
+                feedback.lost = false;
+                break;
+            case MM_MATCH_LOST:
+                ends_round        = true;
+                feedback.lost     = true;
+                feedback.solution = solution;
+                break;
             }
 
             if (ends_round)
             {
-                printf("%s ended in %d turns\n", nicknames[player], mm_get_turns(matches[player]));
+                printf("%s ended in %d turns\n", nicknames[player],
+                       mm_get_turns(matches[player]));
                 players_finished[player] = true;
                 num_players_finished++;
 
@@ -158,10 +164,11 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 
         // Send summary of round
         RoundEndPackage_R summary = { 0 };
-        int min_turns = INT16_MAX;
+        int min_turns             = INT16_MAX;
         for (int i = 0; i < num_players; i++)
         {
-            if (mm_get_turns(matches[i]) < min_turns)
+            if (mm_get_turns(matches[i]) < min_turns &&
+                mm_get_state(matches[i]) == MM_MATCH_WON)
             {
                 min_turns = mm_get_turns(matches[i]);
             }
@@ -171,12 +178,13 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
             summary.num_turns[i] = mm_get_turns(matches[i]);
             for (int j = 0; j < summary.num_turns[i]; j++)
             {
-                summary.guesses[i][j] = mm_get_history_guess(matches[i], j);
+                summary.guesses[i][j]   = mm_get_history_guess(matches[i], j);
                 summary.feedbacks[i][j] = mm_get_history_feedback(matches[i], j);
             }
             if (mm_get_turns(matches[i]) == min_turns)
             {
-                summary.points[i] = 1;
+                points[i]++;
+                summary.points[i] = points[i];
             }
         }
         send_all(num_players, sockets, &summary, sizeof(RoundEndPackage_R));

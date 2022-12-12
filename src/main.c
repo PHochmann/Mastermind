@@ -1,18 +1,18 @@
 #include <math.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <stdio.h>
+#include <readline/readline.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <readline/readline.h>
+#include <unistd.h>
 
-#include "mastermind.h"
-#include "table.h"
 #include "console.h"
-#include "string_util.h"
-#include "multiplayer/server.h"
+#include "mastermind.h"
 #include "multiplayer/client.h"
+#include "multiplayer/server.h"
+#include "string_util.h"
+#include "table.h"
 
 #define RED "\033[38:2:255:000:000m"
 #define GRN "\033[38:2:000:255:000m"
@@ -29,11 +29,11 @@
 static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
 {
     uint8_t feedback = 0;
-    MM_Match *match = mm_new_match(ctx, false);
-    while (mm_get_state(match) != MM_MATCH_PENDING)
+    MM_Match *match  = mm_new_match(ctx, false);
+    while (mm_get_state(match) == MM_MATCH_PENDING)
     {
         uint16_t input = read_colors(ctx, mm_get_turns(match));
-        feedback = mm_get_feedback(ctx, input, solution);
+        feedback       = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_feedback(ctx, feedback);
         printf("\n");
@@ -52,7 +52,7 @@ static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
     return match;
 }
 
-static void multiplayer(MM_Context *ctx, const char * const * colors)
+static void multiplayer(MM_Context *ctx, const char *const *colors)
 {
     char *input = NULL;
     while (true)
@@ -63,25 +63,25 @@ static void multiplayer(MM_Context *ctx, const char * const * colors)
 
         switch (to_lower(input[0]))
         {
-            case 'c':
-            {
-                char *ip = readline("Server IP Address: ");
-                play_client(ip, PORT, colors);
-                free(ip);
-                break;
-            }
-            case 's':
-            {
-                char *num_rounds_str = readline("Num rounds: ");
-                char *num_players_str = readline("Num players: ");
-                int num_rounds = atoi(num_rounds_str);
-                int num_players = atoi(num_players_str);
-                start_server(ctx, num_players, num_rounds, PORT);
-                break;
-            }
-            case 'b':
-                exit = true;
-                break;
+        case 'c':
+        {
+            char *ip = readline("Server IP Address: ");
+            play_client(ip, PORT, colors);
+            free(ip);
+            break;
+        }
+        case 's':
+        {
+            char *num_rounds_str  = readline("Num rounds: ");
+            char *num_players_str = readline("Num players: ");
+            int num_rounds        = atoi(num_rounds_str);
+            int num_players       = atoi(num_players_str);
+            start_server(ctx, num_players, num_rounds, PORT);
+            break;
+        }
+        case 'b':
+            exit = true;
+            break;
         }
         free(input);
         if (exit)
@@ -93,7 +93,7 @@ static void multiplayer(MM_Context *ctx, const char * const * colors)
 
 static void recommender(MM_Context *ctx, MM_Strategy strategy)
 {
-    MM_Match *match = mm_new_match(ctx, true);
+    MM_Match *match  = mm_new_match(ctx, true);
     uint8_t feedback = 0;
     while (!mm_is_winning_feedback(ctx, feedback))
     {
@@ -106,7 +106,8 @@ static void recommender(MM_Context *ctx, MM_Strategy strategy)
         mm_constrain(match, recommendation, feedback);
         if (mm_get_remaining_solutions(match) == 0)
         {
-            printf("That's not possible - inconsistent feedback given. Game aborted.\n\n");
+            printf("That's not possible - inconsistent feedback given. Game "
+                   "aborted.\n\n");
             mm_free_match(match);
             return;
         }
@@ -125,41 +126,36 @@ int main()
     printf("Mastermind v1.0.0 (c) 2022 Philipp Hochmann\n");
     srand(time(NULL));
 
-    const char * const colors[] = {
-        ORN "Orange" RST,
-        RED " Red  " RST,
-        YEL "Yellow" RST,
-        BLU " Blue " RST,
-        CYN " Cyan " RST,
-        GRN "Green " RST,
-        DRG "DGreen" RST,
-        PIN "Pink " RST
-    };
+    const char *const colors[] = { ORN "Orange" RST, RED " Red  " RST,
+                                   YEL "Yellow" RST, BLU " Blue " RST,
+                                   CYN " Cyan " RST, GRN "Green " RST,
+                                   DRG "DGreen" RST, PIN "Pink " RST };
 
     MM_Context *very_easy_ctx = mm_new_ctx(4, 3, 3, colors);
-    MM_Context *easy_ctx = mm_new_ctx(10, 4, 6, colors);
-    MM_Context *hard_ctx = mm_new_ctx(12, 5, 8, colors);
+    MM_Context *easy_ctx      = mm_new_ctx(10, 4, 6, colors);
+    MM_Context *hard_ctx      = mm_new_ctx(12, 5, 8, colors);
 
     while (true)
     {
-        char *input = readline("(s)ingleplayer, (m)ultiplayer, (r)ecommender or (e)xit? ");
+        char *input = readline(
+            "(s)ingleplayer, (m)ultiplayer, (r)ecommender or (e)xit? ");
         clear_input();
         bool exit = false;
 
         switch (to_lower(input[0]))
         {
-            case 's':
-                singleplayer(very_easy_ctx);
-                break;
-            case 'r':
-                recommender(very_easy_ctx, MM_STRAT_AVERAGE);
-                break;
-            case 'm':
-                multiplayer(easy_ctx, colors);
-                break;
-            case 'e':
-                exit = true;
-                break;
+        case 's':
+            singleplayer(very_easy_ctx);
+            break;
+        case 'r':
+            recommender(very_easy_ctx, MM_STRAT_AVERAGE);
+            break;
+        case 'm':
+            multiplayer(easy_ctx, colors);
+            break;
+        case 'e':
+            exit = true;
+            break;
         }
         free(input);
         if (exit)

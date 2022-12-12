@@ -1,9 +1,9 @@
 #include <math.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "mastermind.h"
 #include "util/string_util.h"
@@ -18,7 +18,7 @@ struct MM_Context
     uint8_t num_colors;
     uint8_t num_feedbacks;
     uint16_t num_codes;
-    const char * const *colors;
+    const char *const *colors;
     char color_chars[MAX_NUM_COLORS];
     uint8_t feedback_encode[MAX_NUM_SLOTS + 1][MAX_NUM_SLOTS + 1];
     uint16_t feedback_decode[MAX_NUM_FEEDBACKS];
@@ -51,8 +51,8 @@ void init_lookups(MM_Context *ctx);
 
 static uint8_t calculate_fb(MM_Context *ctx, uint16_t a, uint16_t b)
 {
-    uint8_t num_b = 0;
-    uint8_t num_w = 0;
+    uint8_t num_b                          = 0;
+    uint8_t num_w                          = 0;
     uint8_t color_counts_a[MAX_NUM_COLORS] = { 0 };
     uint8_t color_counts_b[MAX_NUM_COLORS] = { 0 };
 
@@ -100,15 +100,16 @@ void init_feedback_lookup(MM_Context *ctx)
 void init_recommendation_lookup(MM_Context *ctx)
 {
     /* We build a lookup table for the first and second recommendation.
-     * This drastically improves performance since computation time for mm_recommend()
-     * decreases a lot for further guesses because of the smaller solution space.
+     * This drastically improves performance since computation time for
+     * mm_recommend() decreases a lot for further guesses because of the smaller
+     * solution space.
      */
     for (uint8_t strat = 0; strat < MM_NUM_STRATEGIES; strat++)
     {
         // 1. recommendation
-        MM_Match *match = mm_new_match(ctx, true);
+        MM_Match *match                 = mm_new_match(ctx, true);
         ctx->recomm_step1_lookup[strat] = mm_recommend(match, strat);
-        ctx->recomm_step1_init[strat] = true;
+        ctx->recomm_step1_init[strat]   = true;
         mm_free_match(match);
 
         // 2. recommendation
@@ -138,26 +139,24 @@ void init_lookups(MM_Context *ctx)
 
 /*
  * PUBLIC FUNCTIONS
- * 
- * 
-*/
+ *
+ *
+ */
 
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation)
 {
     MM_Match *result = malloc(sizeof(MM_Match));
 
-    *result = (MM_Match){
-        .ctx            = ctx,
-        .solution_space = NULL,
-        .num_turns      = 0,
-        .num_solutions  = 0,
-        .enable_recommendation = enable_recommendation
-    };
+    *result = (MM_Match){ .ctx                   = ctx,
+                          .solution_space        = NULL,
+                          .num_turns             = 0,
+                          .num_solutions         = 0,
+                          .enable_recommendation = enable_recommendation };
 
     if (enable_recommendation)
     {
         init_lookups(ctx);
-        result->num_solutions = ctx->num_codes;
+        result->num_solutions  = ctx->num_codes;
         result->solution_space = malloc(ctx->num_codes * sizeof(bool));
         for (uint16_t i = 0; i < ctx->num_codes; i++)
         {
@@ -167,30 +166,27 @@ MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation)
     return result;
 }
 
-MM_Context *mm_new_ctx(uint8_t max_guesses, uint8_t num_slots, uint8_t num_colors, const char * const *colors)
+MM_Context *mm_new_ctx(uint8_t max_guesses, uint8_t num_slots,
+                       uint8_t num_colors, const char *const *colors)
 {
     uint8_t num_feedbacks = num_slots * (num_slots / 2.0 + 1.5);
 
-    if (num_slots > MAX_NUM_SLOTS
-        || num_colors > MAX_NUM_COLORS
-        || num_feedbacks > MAX_NUM_FEEDBACKS
-        || max_guesses > MAX_MAX_GUESSES)
+    if (num_slots > MAX_NUM_SLOTS || num_colors > MAX_NUM_COLORS ||
+        num_feedbacks > MAX_NUM_FEEDBACKS || max_guesses > MAX_MAX_GUESSES)
     {
         return NULL;
     }
 
     MM_Context *ctx = malloc(sizeof(MM_Context));
-    *ctx = (MM_Context){
-        .max_guesses       = max_guesses,
-        .num_slots         = num_slots,
-        .num_colors        = num_colors,
-        .colors            = colors,
-        .num_feedbacks     = num_feedbacks,
-        .num_codes         = pow(num_colors, num_slots),
-        .lookups_init      = false,
-        .recomm_step1_init = { false },
-        .recomm_step2_init = { false }
-    };
+    *ctx            = (MM_Context){ .max_guesses       = max_guesses,
+                                    .num_slots         = num_slots,
+                                    .num_colors        = num_colors,
+                                    .colors            = colors,
+                                    .num_feedbacks     = num_feedbacks,
+                                    .num_codes         = pow(num_colors, num_slots),
+                                    .lookups_init      = false,
+                                    .recomm_step1_init = { false },
+                                    .recomm_step2_init = { false } };
 
     uint8_t counter = 0;
     for (uint8_t b = 0; b <= num_slots; b++)
@@ -199,7 +195,7 @@ MM_Context *mm_new_ctx(uint8_t max_guesses, uint8_t num_slots, uint8_t num_color
         {
             if ((b + w) <= num_slots && !(b == num_slots - 1 && w == 1))
             {
-                ctx->feedback_encode[b][w] = counter;
+                ctx->feedback_encode[b][w]    = counter;
                 ctx->feedback_decode[counter] = (b << 8) | w;
                 counter++;
             }
@@ -223,7 +219,8 @@ void mm_free_ctx(MM_Context *ctx)
     free(ctx);
 }
 
-void mm_code_to_feedback(MM_Context *ctx, uint8_t fb_code, uint8_t *b, uint8_t *w)
+void mm_code_to_feedback(MM_Context *ctx, uint8_t fb_code, uint8_t *b,
+                         uint8_t *w)
 {
     *b = ctx->feedback_decode[fb_code] >> 8;
     *w = ctx->feedback_decode[fb_code] & 0xFF;
@@ -296,7 +293,7 @@ char mm_get_color_char(MM_Context *ctx, uint8_t index)
     return ctx->color_chars[index];
 }
 
-void mm_free_match(MM_Match* match)
+void mm_free_match(MM_Match *match)
 {
     free(match->solution_space);
     free(match);
@@ -326,7 +323,7 @@ uint16_t mm_recommend(MM_Match *match, MM_Strategy strat)
             aggregations[i] = 0;
             for (uint16_t j = 0; j < match->ctx->num_codes; j++)
             {
-                uint8_t fb = mm_get_feedback(match->ctx, j, i);
+                uint8_t fb             = mm_get_feedback(match->ctx, j, i);
                 uint16_t num_solutions = 0;
                 for (uint16_t k = 0; k < match->ctx->num_codes; k++)
                 {
@@ -341,14 +338,14 @@ uint16_t mm_recommend(MM_Match *match, MM_Strategy strat)
 
                 switch (strat)
                 {
-                    case MM_STRAT_AVERAGE:
-                        aggregations[i] += num_solutions;
-                        break;
-                    case MM_STRAT_MINMAX:
-                        aggregations[i] = MAX(aggregations[i], num_solutions);
-                        break;
-                    default:
-                        break;
+                case MM_STRAT_AVERAGE:
+                    aggregations[i] += num_solutions;
+                    break;
+                case MM_STRAT_MINMAX:
+                    aggregations[i] = MAX(aggregations[i], num_solutions);
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -366,9 +363,9 @@ uint16_t mm_recommend(MM_Match *match, MM_Strategy strat)
     return min;
 }
 
-void mm_constrain(MM_Match* match, uint16_t guess, uint8_t feedback)
+void mm_constrain(MM_Match *match, uint16_t guess, uint8_t feedback)
 {
-    match->guesses[match->num_turns] = guess;
+    match->guesses[match->num_turns]   = guess;
     match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
 
@@ -424,7 +421,8 @@ MM_MatchState mm_get_state(MM_Match *match)
     {
         return MM_MATCH_PENDING;
     }
-    else if (mm_is_winning_feedback(match->ctx, match->feedbacks[match->num_turns - 1]))
+    else if (mm_is_winning_feedback(match->ctx,
+                                    match->feedbacks[match->num_turns - 1]))
     {
         return MM_MATCH_WON;
     }

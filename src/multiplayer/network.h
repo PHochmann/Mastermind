@@ -1,6 +1,6 @@
 #pragma once
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 int connect_to_server(const char *ip, int port, int retries);
 bool accept_clients(int port, int num_clients, int *sockets);

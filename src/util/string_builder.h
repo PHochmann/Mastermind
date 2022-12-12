@@ -1,7 +1,7 @@
 #pragma once
-#include <stdlib.h>
-#include <stdarg.h>
 #include "vector.h"
+#include <stdarg.h>
+#include <stdlib.h>
 
 // A StringBuilder is just a Vector of chars
 typedef Vector StringBuilder;

@@ -1,19 +1,19 @@
-#include <stdio.h>
+#include <readline/readline.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <readline/readline.h>
+#include <stdio.h>
 
 #include "console.h"
+#include "multiplayer/protocol.h"
 #include "string_builder.h"
 #include "string_util.h"
 #include "table.h"
-#include "multiplayer/protocol.h"
 
-#define BLK     "\033[38:2:000:000:000m"
-#define WHT     "\033[38:2:255:255:255m"
-#define BLK_BG  "\033[48:2:000:000:000m"
-#define WHT_BG  "\033[48:2:255:255:255m"
-#define RST     "\033[0m"
+#define BLK    "\033[38:2:000:000:000m"
+#define WHT    "\033[38:2:255:255:255m"
+#define BLK_BG "\033[48:2:000:000:000m"
+#define WHT_BG "\033[48:2:255:255:255m"
+#define RST    "\033[0m"
 
 void clear_input()
 {
@@ -67,7 +67,7 @@ uint8_t read_feedback(MM_Context *ctx)
     strb_append(&pb, "#blacks, #whites: ");
 
     bool validated = false;
-    char *input = NULL;
+    char *input    = NULL;
 
     while (!validated)
     {
@@ -98,7 +98,7 @@ uint16_t read_colors(MM_Context *ctx, uint8_t turn)
     strb_append(&pb, "]*%d: ", mm_get_num_slots(ctx));
 
     bool validated = false;
-    char *input = NULL;
+    char *input    = NULL;
     uint8_t colors[MAX_NUM_COLORS];
 
     while (!validated)
@@ -167,9 +167,9 @@ void print_feedback(MM_Context *ctx, uint8_t feedback)
 }
 
 void print_game_summary_table(int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
-    int total_points[MAX_NUM_PLAYERS],
-    int best_points)
+                              char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
+                              int total_points[MAX_NUM_PLAYERS],
+                              int best_points)
 {
     Table *tbl = get_empty_table();
     set_span(tbl, num_players, 1);
@@ -186,7 +186,7 @@ void print_game_summary_table(int num_players,
 
     next_row(tbl);
     set_hline(tbl, BORDER_SINGLE);
-    
+
     for (int j = 0; j < num_players; j++)
     {
         add_cell_fmt(tbl, " %d points ", total_points[j]);
@@ -216,12 +216,12 @@ void print_game_summary_table(int num_players,
 }
 
 void print_round_summary_table(MM_Context *ctx,
-    int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
-    int turns[MAX_NUM_PLAYERS],
-    uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-    uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-    int round)
+                               int num_players,
+                               char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
+                               int turns[MAX_NUM_PLAYERS],
+                               uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               int round)
 {
     int max_turns = 0;
     for (int i = 0; i < num_players; i++)
@@ -245,7 +245,7 @@ void print_round_summary_table(MM_Context *ctx,
         add_cell(tbl, "#B");
         add_cell(tbl, "#W ");
     }
-    
+
     next_row(tbl);
     set_hline(tbl, BORDER_SINGLE);
 

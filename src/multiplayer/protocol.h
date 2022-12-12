@@ -1,10 +1,10 @@
 #pragma once
-#include <stdint.h>
 #include "../mastermind.h"
+#include <stdint.h>
 
-#define MAX_NUM_PLAYERS          4
-#define MAX_PLAYER_NAME_BYTES   11 // Including \0
-#define MAX_NUM_ROUNDS          10
+#define MAX_NUM_PLAYERS 4
+#define MAX_PLAYER_NAME_BYTES 11 // Including \0
+#define MAX_NUM_ROUNDS 10
 
 typedef struct
 {

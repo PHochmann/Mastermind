@@ -1,7 +1,7 @@
 #pragma once
-#include <stdint.h>
-#include "mastermind.h"
 #include "../multiplayer/protocol.h"
+#include "mastermind.h"
+#include <stdint.h>
 
 char *readline_fmt(const char *fmt, ...);
 void clear_input();
@@ -18,13 +18,13 @@ void print_feedback(MM_Context *ctx, uint8_t feedback);
 char *get_colors_string(MM_Context *ctx, uint16_t input);
 
 void print_game_summary_table(int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
-    int total_points[MAX_NUM_PLAYERS],
-    int best_points);
+                              char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
+                              int total_points[MAX_NUM_PLAYERS],
+                              int best_points);
 void print_round_summary_table(MM_Context *ctx,
-    int num_players,
-    char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
-    int turns[MAX_NUM_PLAYERS],
-    uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-    uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-    int round);
+                               int num_players,
+                               char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
+                               int turns[MAX_NUM_PLAYERS],
+                               uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               int round);

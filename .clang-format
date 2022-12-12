@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveMacros: true
+Cpp11BracedListStyle: false
+#BreakBeforeBinaryOperators: All
+BinaryOperatorStyle: NonAssignment
+AllowShortFunctionsOnASingleLine: Empty
+ColumnLimit: 0

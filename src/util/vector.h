@@ -1,12 +1,12 @@
 #pragma once
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <sys/types.h>
 
 // May change the buffer location
-#define VEC_PUSH_ELEM(vec, type, expr) ((*(type*)vec_push_empty(vec)) = (expr))
-#define VEC_SET_ELEM(vec, type, index, expr) ((*(type*)vec_get(vec, index)) = (expr))
+#define VEC_PUSH_ELEM(vec, type, expr)       ((*(type *)vec_push_empty(vec)) = (expr))
+#define VEC_SET_ELEM(vec, type, index, expr) ((*(type *)vec_get(vec, index)) = (expr))
 
 /*
  * Never save pointers when there are elements

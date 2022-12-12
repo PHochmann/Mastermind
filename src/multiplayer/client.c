@@ -1,33 +1,37 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <readline/readline.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <readline/readline.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "client.h"
-#include "protocol.h"
-#include "network.h"
 #include "../mastermind.h"
-#include "../util/string_builder.h"
 #include "../util/console.h"
+#include "../util/string_builder.h"
+#include "client.h"
+#include "network.h"
+#include "protocol.h"
 
-void play_client(const char *ip, int port, const char * const * colors)
+void play_client(const char *ip, int port, const char *const *colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
     int sock = connect_to_server(ip, port, -1);
-    if (sock == -1) return;
+    if (sock == -1)
+    {
+        return;
+    }
     printf("Successfully connected to server!\n");
 
     // Request nickname
-    char *nickname = NULL;
+    char *nickname                      = NULL;
     NicknamePackage_R nickname_response = { 0 };
     while (!nickname_response.is_accepted)
     {
         free(nickname);
-        nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
+        nickname = readline_fmt("Enter your nickname (max. %d characters): ",
+                                MAX_PLAYER_NAME_BYTES - 1);
         if (strlen(nickname) >= MAX_PLAYER_NAME_BYTES)
         {
             printf("Name too long\n");
@@ -59,9 +63,11 @@ void play_client(const char *ip, int port, const char * const * colors)
 
     printf("~ ~ Server rules ~ ~\n");
     printf("%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
-        rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
+           rules.num_players, rules.num_colors, rules.num_slots,
+           rules.max_guesses, rules.num_rounds);
 
-    MM_Context *ctx = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, colors);
+    MM_Context *ctx                   = mm_new_ctx(rules.max_guesses, rules.num_slots,
+                                                   rules.num_colors, colors);
     int total_points[MAX_NUM_PLAYERS] = { 0 };
 
     for (int i = 0; i < rules.num_rounds; i++)
@@ -81,7 +87,7 @@ void play_client(const char *ip, int port, const char * const * colors)
         printf("\n~ ~ Round %d/%d ~ ~\n", i + 1, rules.num_rounds);
 
         bool finished = false;
-        int counter = 0;
+        int counter   = 0;
         while (!finished)
         {
             GuessPackage_Q guess_package;
@@ -116,10 +122,12 @@ void play_client(const char *ip, int port, const char * const * colors)
 
         RoundEndPackage_R summary;
         recv(sock, &summary, sizeof(RoundEndPackage_R), 0);
-        print_round_summary_table(ctx, rules.num_players, rules.players, summary.num_turns, summary.guesses, summary.feedbacks, i);
+        print_round_summary_table(ctx, rules.num_players, rules.players,
+                                  summary.num_turns, summary.guesses,
+                                  summary.feedbacks, i);
         for (int j = 0; j < rules.num_players; j++)
         {
-            total_points[j] += summary.points[j];
+            total_points[j] = summary.points[j];
         }
     }
 
@@ -132,7 +140,8 @@ void play_client(const char *ip, int port, const char * const * colors)
         }
     }
 
-    print_game_summary_table(rules.num_players, rules.players, total_points, best_points);
+    print_game_summary_table(rules.num_players, rules.players, total_points,
+                             best_points);
     printf("\n");
     free(nickname);
     close(sock);

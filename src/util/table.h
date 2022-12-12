@@ -1,6 +1,6 @@
 #pragma once
-#include <stdbool.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 // Can be changed without further modifications

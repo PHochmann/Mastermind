@@ -1,5 +1,5 @@
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "vector.h"
 
@@ -11,7 +11,7 @@
 void vec_trim(Vector *vec)
 {
     vec->buffer_size = vec->elem_count + 1;
-    vec->buffer = realloc(vec->buffer, vec->elem_size * vec->buffer_size);
+    vec->buffer      = realloc(vec->buffer, vec->elem_size * vec->buffer_size);
 }
 
 void vec_ensure_size(Vector *vec, size_t needed_size)
@@ -45,7 +45,7 @@ void vec_destroy(Vector *vec)
 
 void *vec_get(const Vector *vec, size_t index)
 {
-    return (uint8_t*)vec->buffer + vec->elem_size * index;
+    return (uint8_t *)vec->buffer + vec->elem_size * index;
 }
 
 void *vec_push(Vector *vec, void *elem)
@@ -65,7 +65,7 @@ void *vec_push_empty(Vector *vec)
 void *vec_push_many(Vector *vec, size_t num, void *elems)
 {
     vec_ensure_size(vec, vec->elem_count + num);
-    void *first = (uint8_t*)vec->buffer + vec->elem_size * vec->elem_count;
+    void *first = (uint8_t *)vec->buffer + vec->elem_size * vec->elem_count;
     memcpy(first, elems, num * vec->elem_size);
     vec->elem_count += num;
     return first;
@@ -73,14 +73,16 @@ void *vec_push_many(Vector *vec, size_t num, void *elems)
 
 void *vec_pop(Vector *vec)
 {
-    if (vec->elem_count == 0) return NULL;
+    if (vec->elem_count == 0)
+        return NULL;
     vec->elem_count--;
     return vec_get(vec, vec->elem_count);
 }
 
 void *vec_peek(const Vector *vec)
 {
-    if (vec->elem_count == 0) return NULL;
+    if (vec->elem_count == 0)
+        return NULL;
     return vec_get(vec, vec->elem_count - 1);
 }
 
