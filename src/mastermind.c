@@ -171,8 +171,7 @@ MM_Context *mm_new_ctx(uint8_t max_guesses, uint8_t num_slots,
 {
     uint8_t num_feedbacks = num_slots * (num_slots / 2.0 + 1.5);
 
-    if (num_slots > MAX_NUM_SLOTS || num_colors > MAX_NUM_COLORS ||
-        num_feedbacks > MAX_NUM_FEEDBACKS || max_guesses > MAX_MAX_GUESSES)
+    if (num_slots > MAX_NUM_SLOTS || num_colors > MAX_NUM_COLORS || num_feedbacks > MAX_NUM_FEEDBACKS || max_guesses > MAX_MAX_GUESSES)
     {
         return NULL;
     }
@@ -417,17 +416,16 @@ uint16_t mm_get_history_guess(MM_Match *match, uint8_t index)
 
 MM_MatchState mm_get_state(MM_Match *match)
 {
-    if (match->num_turns < match->ctx->max_guesses)
-    {
-        return MM_MATCH_PENDING;
-    }
-    else if (mm_is_winning_feedback(match->ctx,
-                                    match->feedbacks[match->num_turns - 1]))
+    if (match->num_turns != 0 && mm_is_winning_feedback(match->ctx, match->feedbacks[match->num_turns - 1]))
     {
         return MM_MATCH_WON;
     }
-    else
+    else if (match->num_turns > match->ctx->max_guesses)
     {
         return MM_MATCH_LOST;
+    }
+    else
+    {
+        return MM_MATCH_PENDING;
     }
 }
