@@ -420,7 +420,7 @@ MM_MatchState mm_get_state(MM_Match *match)
     {
         return MM_MATCH_WON;
     }
-    else if (match->num_turns > match->ctx->max_guesses)
+    else if (match->num_turns >= match->ctx->max_guesses)
     {
         return MM_MATCH_LOST;
     }
