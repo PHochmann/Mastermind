@@ -1,10 +1,9 @@
 #pragma once
 #include "../mastermind.h"
-#include <stdint.h>
 
-#define MAX_NUM_PLAYERS 4
+#define MAX_NUM_PLAYERS       4
 #define MAX_PLAYER_NAME_BYTES 11 // Including \0
-#define MAX_NUM_ROUNDS 10
+#define MAX_NUM_ROUNDS        10
 
 typedef struct
 {
@@ -29,7 +28,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t dummy;
+    int dummy;
 } ReadyPackage_Q;
 
 typedef struct
@@ -39,19 +38,19 @@ typedef struct
 
 typedef struct
 {
-    uint8_t dummy;
+    int dummy;
 } RoundBeginPackage_R;
 
 typedef struct
 {
-    uint16_t guess;
+    Code_t guess;
 } GuessPackage_Q;
 
 typedef struct
 {
-    uint8_t feedback;
+    Feedback_t feedback;
     bool lost;
-    uint16_t solution;
+    Code_t solution;
     bool waiting_for_others;
 } FeedbackPackage_R;
 
@@ -59,6 +58,6 @@ typedef struct
 {
     int points[MAX_NUM_PLAYERS];
     int num_turns[MAX_NUM_PLAYERS];
-    uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
-    uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
+    Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
+    Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
 } RoundEndPackage_R;

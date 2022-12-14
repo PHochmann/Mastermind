@@ -17,6 +17,11 @@
 
 void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
 {
+    if (num_players > MAX_NUM_PLAYERS || num_rounds > MAX_NUM_ROUNDS)
+    {
+        return;
+    }
+
     int sockets[MAX_NUM_PLAYERS];
     if (!accept_clients(port, num_players, sockets))
     {
@@ -102,7 +107,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         send_all(num_players, sockets, &begin_package,
                  sizeof(RoundBeginPackage_R));
 
-        uint16_t solution = rand() % mm_get_num_codes(ctx);
+        Code_t solution = rand() % mm_get_num_codes(ctx);
         printf("Round %d/%d\n", i + 1, num_rounds);
         printf("Solution: ");
         print_colors(ctx, solution);

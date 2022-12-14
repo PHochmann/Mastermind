@@ -3,10 +3,15 @@
 #include <stdint.h>
 
 #define MAX_MAX_GUESSES   20
-#define MAX_NUM_COLORS    10
+#define MAX_NUM_COLORS    8
 #define MAX_NUM_SLOTS     10
 #define MAX_NUM_CODES     50
-#define MAX_NUM_FEEDBACKS 30
+#define MAX_NUM_FEEDBACKS 65 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
+
+typedef uint32_t Code_t;
+typedef uint32_t CodeSize_t;
+typedef uint16_t Feedback_t;
+typedef uint16_t FeedbackSize_t;
 
 typedef enum
 {
@@ -25,29 +30,29 @@ typedef enum
 typedef struct MM_Context MM_Context;
 typedef struct MM_Match MM_Match;
 
-MM_Context *mm_new_ctx(uint8_t max_guesses, uint8_t num_slots, uint8_t num_colors, const char *const *colors);
+MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const char *const *colors);
 void mm_free_ctx(MM_Context *ctx);
-uint8_t mm_get_feedback(MM_Context *ctx, uint16_t a, uint16_t b);
-void mm_code_to_feedback(MM_Context *ctx, uint8_t fb_code, uint8_t *b, uint8_t *w);
-uint16_t mm_feedback_to_code(MM_Context *ctx, uint8_t b, uint8_t w);
-bool mm_is_winning_feedback(MM_Context *ctx, uint8_t fb);
-uint8_t mm_get_color_at_pos(uint8_t num_colors, uint16_t code, uint8_t index);
-uint16_t mm_colors_to_code(MM_Context *ctx, uint8_t *colors);
+Feedback_t mm_get_feedback(MM_Context *ctx, Code_t a, Code_t b);
+void mm_code_to_feedback(MM_Context *ctx, Feedback_t fb_code, int *b, int *w);
+Feedback_t mm_feedback_to_code(MM_Context *ctx, int b, int w);
+bool mm_is_winning_feedback(MM_Context *ctx, Feedback_t fb);
+int mm_get_color_at_pos(int num_colors, Code_t code, int index);
+Code_t mm_colors_to_code(MM_Context *ctx, int *colors);
 
-uint8_t mm_get_max_guesses(MM_Context *ctx);
-uint16_t mm_get_num_codes(MM_Context *ctx);
-uint8_t mm_get_num_colors(MM_Context *ctx);
-uint8_t mm_get_num_slots(MM_Context *ctx);
-const char *mm_get_color(MM_Context *ctx, uint8_t index);
-char mm_get_color_char(MM_Context *ctx, uint8_t index);
+int mm_get_max_guesses(MM_Context *ctx);
+CodeSize_t mm_get_num_codes(MM_Context *ctx);
+int mm_get_num_colors(MM_Context *ctx);
+int mm_get_num_slots(MM_Context *ctx);
+const char *mm_get_color(MM_Context *ctx, int index);
+char mm_get_color_char(MM_Context *ctx, int index);
 
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation);
 void mm_free_match(MM_Match *match);
-void mm_constrain(MM_Match *match, uint16_t input, uint8_t feedback);
-uint16_t mm_recommend(MM_Match *match, MM_Strategy strategy);
+void mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
+Code_t mm_recommend(MM_Match *match, MM_Strategy strategy);
 
-uint16_t mm_get_remaining_solutions(MM_Match *match);
-uint16_t mm_get_turns(MM_Match *match);
-uint8_t mm_get_history_feedback(MM_Match *match, uint8_t index);
-uint16_t mm_get_history_guess(MM_Match *match, uint8_t index);
+CodeSize_t mm_get_remaining_solutions(MM_Match *match);
+int mm_get_turns(MM_Match *match);
+Feedback_t mm_get_history_feedback(MM_Match *match, int index);
+Code_t mm_get_history_guess(MM_Match *match, int index);
 MM_MatchState mm_get_state(MM_Match *match);

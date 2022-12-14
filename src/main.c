@@ -26,14 +26,14 @@
 
 #define PORT 25567
 
-static MM_Match *play_game(MM_Context *ctx, uint16_t solution)
+static MM_Match *play_game(MM_Context *ctx, Code_t solution)
 {
-    uint8_t feedback = 0;
-    MM_Match *match  = mm_new_match(ctx, false);
+    Feedback_t feedback = 0;
+    MM_Match *match     = mm_new_match(ctx, false);
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
-        uint16_t input = read_colors(ctx, mm_get_turns(match));
-        feedback       = mm_get_feedback(ctx, input, solution);
+        Code_t input = read_colors(ctx, mm_get_turns(match));
+        feedback     = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_feedback(ctx, feedback);
         printf("\n");
@@ -72,10 +72,8 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
         }
         case 's':
         {
-            char *num_rounds_str  = readline("Num rounds: ");
-            char *num_players_str = readline("Num players: ");
-            int num_rounds        = atoi(num_rounds_str);
-            int num_players       = atoi(num_players_str);
+            int num_rounds  = readline_int("Number of rounds", 3, 1, MAX_NUM_ROUNDS);
+            int num_players = readline_int("Number of players", 2, 1, MAX_NUM_PLAYERS);
             start_server(ctx, num_players, num_rounds, PORT);
             break;
         }
@@ -93,8 +91,8 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
 
 static void recommender(MM_Context *ctx, MM_Strategy strategy)
 {
-    MM_Match *match  = mm_new_match(ctx, true);
-    uint8_t feedback = 0;
+    MM_Match *match     = mm_new_match(ctx, true);
+    Feedback_t feedback = 0;
     while (!mm_is_winning_feedback(ctx, feedback))
     {
         uint16_t recommendation = mm_recommend(match, strategy);
@@ -116,6 +114,16 @@ static void recommender(MM_Context *ctx, MM_Strategy strategy)
     mm_free_match(match);
 }
 
+static void options(MM_Context **ctx, const char *const *colors)
+{
+    printf("~ ~ Options menu ~ ~\n");
+    int max_guesses = readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES);
+    int num_slots   = readline_int("Number of slots", mm_get_num_slots(*ctx), 1, MAX_NUM_SLOTS);
+    int num_colors  = readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS);
+    mm_free_ctx(*ctx);
+    *ctx = mm_new_ctx(max_guesses, num_slots, num_colors, colors);
+}
+
 static void singleplayer(MM_Context *ctx)
 {
     mm_free_match(play_game(ctx, rand() % mm_get_num_codes(ctx)));
@@ -131,27 +139,28 @@ int main()
                                    CYN " Cyan " RST, GRN "Green " RST,
                                    DRG "DGreen" RST, PIN "Pink " RST };
 
-    MM_Context *very_easy_ctx = mm_new_ctx(4, 3, 3, colors);
-    MM_Context *easy_ctx      = mm_new_ctx(10, 4, 6, colors);
-    MM_Context *hard_ctx      = mm_new_ctx(12, 5, 8, colors);
+    MM_Context *ctx = mm_new_ctx(10, 4, 6, colors);
 
     while (true)
     {
         char *input = readline(
-            "(s)ingleplayer, (m)ultiplayer, (r)ecommender or (e)xit? ");
+            "(s)ingleplayer, (m)ultiplayer, (r)ecommender, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
         switch (to_lower(input[0]))
         {
         case 's':
-            singleplayer(very_easy_ctx);
+            singleplayer(ctx);
             break;
         case 'r':
-            recommender(very_easy_ctx, MM_STRAT_AVERAGE);
+            recommender(ctx, MM_STRAT_AVERAGE);
             break;
         case 'm':
-            multiplayer(easy_ctx, colors);
+            multiplayer(ctx, colors);
+            break;
+        case 'o':
+            options(&ctx, colors);
             break;
         case 'e':
             exit = true;
@@ -164,8 +173,6 @@ int main()
         }
     }
 
-    mm_free_ctx(very_easy_ctx);
-    mm_free_ctx(easy_ctx);
-    mm_free_ctx(hard_ctx);
+    mm_free_ctx(ctx);
     return 0;
 }

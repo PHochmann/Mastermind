@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <readline/readline.h>
+#include <inttypes.h>
+#include <errno.h>
 
 #include "console.h"
 #include "multiplayer/protocol.h"
@@ -32,17 +34,12 @@ void any_key()
     getchar();
 }
 
-uint8_t digit_to_uint(char c)
-{
-    return c - '0';
-}
-
-void print_winning_message(uint8_t num_turns)
+void print_winning_message(int num_turns)
 {
     printf("~ ~ Game won in %d steps ~ ~\n\n", num_turns);
 }
 
-void print_losing_message(uint8_t num_max_guesses)
+void print_losing_message(int num_max_guesses)
 {
     printf("~ ~ Game over - You could not make it in %d turns ~ ~\n", num_max_guesses);
 }
@@ -61,7 +58,7 @@ char *readline_fmt(const char *fmt, ...)
     return result;
 }
 
-uint8_t read_feedback(MM_Context *ctx)
+Feedback_t read_feedback(MM_Context *ctx)
 {
     StringBuilder pb = strb_create();
     strb_append(&pb, "#blacks, #whites: ");
@@ -87,11 +84,11 @@ uint8_t read_feedback(MM_Context *ctx)
     return mm_feedback_to_code(ctx, input[0] - '0', input[1] - '0');
 }
 
-uint16_t read_colors(MM_Context *ctx, uint8_t turn)
+Code_t read_colors(MM_Context *ctx, int turn)
 {
     StringBuilder pb = strb_create();
     strb_append(&pb, "%d/%d colors [", turn + 1, mm_get_max_guesses(ctx));
-    for (uint8_t i = 0; i < mm_get_num_colors(ctx); i++)
+    for (int i = 0; i < mm_get_num_colors(ctx); i++)
     {
         strb_append(&pb, "%c", mm_get_color_char(ctx, i));
     }
@@ -99,20 +96,20 @@ uint16_t read_colors(MM_Context *ctx, uint8_t turn)
 
     bool validated = false;
     char *input    = NULL;
-    uint8_t colors[MAX_NUM_COLORS];
+    int colors[MAX_NUM_COLORS];
 
     while (!validated)
     {
         input = readline(strb_to_str(&pb));
         clear_input();
 
-        if (strlen(input) == mm_get_num_slots(ctx))
+        if ((int)strlen(input) == mm_get_num_slots(ctx))
         {
             validated = true;
-            for (uint8_t i = 0; (i < mm_get_num_slots(ctx)) && validated; i++)
+            for (int i = 0; (i < mm_get_num_slots(ctx)) && validated; i++)
             {
                 colors[i] = UINT8_MAX;
-                for (uint8_t j = 0; j < mm_get_num_colors(ctx); j++)
+                for (int j = 0; j < mm_get_num_colors(ctx); j++)
                 {
                     if (mm_get_color_char(ctx, j) == to_lower(input[i]))
                     {
@@ -134,34 +131,34 @@ uint16_t read_colors(MM_Context *ctx, uint8_t turn)
 
         free(input);
     }
-    uint16_t result = mm_colors_to_code(ctx, colors);
+    Code_t result = mm_colors_to_code(ctx, colors);
     print_colors(ctx, result);
     printf("\n");
     strb_destroy(&pb);
     return result;
 }
 
-void print_colors(MM_Context *ctx, uint16_t input)
+void print_colors(MM_Context *ctx, Code_t input)
 {
     char *str = get_colors_string(ctx, input);
     printf("%s", str);
     free(str);
 }
 
-char *get_colors_string(MM_Context *ctx, uint16_t input)
+char *get_colors_string(MM_Context *ctx, Code_t input)
 {
     StringBuilder builder = strb_create();
     strb_append(&builder, " ");
-    for (uint8_t i = 0; i < mm_get_num_slots(ctx); i++)
+    for (int i = 0; i < mm_get_num_slots(ctx); i++)
     {
         strb_append(&builder, "%s  ", mm_get_color(ctx, mm_get_color_at_pos(mm_get_num_colors(ctx), input, i)));
     }
     return strb_to_str(&builder);
 }
 
-void print_feedback(MM_Context *ctx, uint8_t feedback)
+void print_feedback(MM_Context *ctx, Feedback_t feedback)
 {
-    uint8_t b, w;
+    int b, w;
     mm_code_to_feedback(ctx, feedback, &b, &w);
     printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
 }
@@ -219,8 +216,8 @@ void print_round_summary_table(MM_Context *ctx,
                                int num_players,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
-                               uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-                               uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
                                int round)
 {
     int max_turns = 0;
@@ -256,7 +253,7 @@ void print_round_summary_table(MM_Context *ctx,
             if (i < turns[j])
             {
                 add_cell_gc(tbl, get_colors_string(ctx, guesses[j][i]));
-                uint8_t b, w;
+                int b, w;
                 mm_code_to_feedback(ctx, feedbacks[j][i], &b, &w);
                 add_cell_fmt(tbl, " %d ", b);
                 add_cell_fmt(tbl, " %d ", w);
@@ -286,4 +283,30 @@ void print_round_summary_table(MM_Context *ctx,
     make_boxed(tbl, BORDER_SINGLE);
     print_table(tbl);
     free_table(tbl);
+}
+
+int readline_int(const char *prompt, int default_value, int min, int max)
+{
+    StringBuilder builder = strb_create();
+    strb_append(&builder, "%s", prompt);
+    strb_append(&builder, " (%d-%d, default: %d): ", min, max, default_value);
+    bool validated = false;
+    int result;
+    while (!validated)
+    {
+        char *input = readline(strb_to_str(&builder));
+        if (input[0] == '\0')
+        {
+            free(input);
+            return default_value;
+        }
+        result = strtol(input, NULL, 10);
+        if ((errno != ERANGE) && (result >= min) && (result <= max))
+        {
+            validated = true;
+        }
+        free(input);
+    }
+    strb_destroy(&builder);
+    return result;
 }

@@ -92,7 +92,7 @@ bool accept_clients(int port, int num_clients, int *sockets)
         printf("Listening on port %d\n", port);
     }
 
-    for (uint8_t i = 0; i < num_clients; i++)
+    for (int i = 0; i < num_clients; i++)
     {
         printf("Waiting for player %d/%d...", i + 1, num_clients);
         fflush(stdout);

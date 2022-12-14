@@ -7,15 +7,14 @@ char *readline_fmt(const char *fmt, ...);
 void clear_input();
 void clear_screen();
 void any_key();
-uint8_t digit_to_uint(char c);
-void print_winning_message(uint8_t num_turns);
-void print_losing_message(uint8_t num_max_guesses);
+void print_winning_message(int num_turns);
+void print_losing_message(int num_max_guesses);
 
-uint8_t read_feedback(MM_Context *ctx);
-uint16_t read_colors(MM_Context *ctx, uint8_t turn);
-void print_colors(MM_Context *ctx, uint16_t input);
-void print_feedback(MM_Context *ctx, uint8_t feedback);
-char *get_colors_string(MM_Context *ctx, uint16_t input);
+Feedback_t read_feedback(MM_Context *ctx);
+Code_t read_colors(MM_Context *ctx, int turn);
+void print_colors(MM_Context *ctx, Code_t input);
+void print_feedback(MM_Context *ctx, Feedback_t feedback);
+char *get_colors_string(MM_Context *ctx, Code_t input);
 
 void print_game_summary_table(int num_players,
                               char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
@@ -25,6 +24,8 @@ void print_round_summary_table(MM_Context *ctx,
                                int num_players,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
-                               uint16_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-                               uint8_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
                                int round);
+
+int readline_int(const char *prompt, int default_value, int min, int max);
