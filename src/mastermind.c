@@ -84,7 +84,7 @@ void init_feedback_lookup(MM_Context *ctx)
         return;
     }
 
-    ctx->feedback_lookup = malloc(ctx->num_codes * ctx->num_codes);
+    ctx->feedback_lookup = malloc(ctx->num_codes * ctx->num_codes * sizeof(Code_t));
 
     for (CodeSize_t a = 0; a < ctx->num_codes; a++)
     {
@@ -132,7 +132,10 @@ void init_lookups(MM_Context *ctx)
     }
 
     ctx->lookups_init = true;
-    printf("Initializing data structures for recommendation, this may take a while...\n");
+    if (ctx->num_codes > 500)
+    {
+        printf("Initializing data structures for recommendation, this may take a while...\n");
+    }
     init_feedback_lookup(ctx);
     init_recommendation_lookup(ctx);
 }

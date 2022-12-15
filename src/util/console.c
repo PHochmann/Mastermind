@@ -295,6 +295,7 @@ int readline_int(const char *prompt, int default_value, int min, int max)
     while (!validated)
     {
         char *input = readline(strb_to_str(&builder));
+        clear_input();
         if (input[0] == '\0')
         {
             free(input);

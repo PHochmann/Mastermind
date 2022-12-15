@@ -116,7 +116,6 @@ static void recommender(MM_Context *ctx, MM_Strategy strategy)
 
 static void options(MM_Context **ctx, const char *const *colors)
 {
-    printf("~ ~ Options menu ~ ~\n");
     int max_guesses = readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES);
     int num_slots   = readline_int("Number of slots", mm_get_num_slots(*ctx), 1, MAX_NUM_SLOTS);
     int num_colors  = readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS);
@@ -143,8 +142,7 @@ int main()
 
     while (true)
     {
-        char *input = readline(
-            "(s)ingleplayer, (m)ultiplayer, (r)ecommender, (o)ptions or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (m)ultiplayer, (r)ecommender, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
