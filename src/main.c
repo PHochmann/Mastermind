@@ -66,6 +66,7 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
         case 'c':
         {
             char *ip = readline("Server IP Address: ");
+            clear_input();
             play_client(ip, PORT, colors);
             free(ip);
             break;

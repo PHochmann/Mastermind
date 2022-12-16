@@ -5,7 +5,6 @@
 #define MAX_MAX_GUESSES   20
 #define MAX_NUM_COLORS    8
 #define MAX_NUM_SLOTS     10
-#define MAX_NUM_CODES     50
 #define MAX_NUM_FEEDBACKS 65 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
 
 typedef uint32_t Code_t;

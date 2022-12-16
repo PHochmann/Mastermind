@@ -310,7 +310,7 @@ Code_t mm_recommend(MM_Match *match, MM_Strategy strat)
         return match->ctx->recomm_step2_lookup[strat][match->feedbacks[0]];
     }
 
-    long aggregations[MAX_NUM_CODES];
+    long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
     for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
     {
         aggregations[i] = UINT32_MAX;
@@ -360,6 +360,7 @@ Code_t mm_recommend(MM_Match *match, MM_Strategy strat)
         }
     }
 
+    free(aggregations);
     return min;
 }
 
