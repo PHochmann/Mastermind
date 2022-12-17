@@ -73,9 +73,16 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
         }
         case 's':
         {
-            int num_rounds  = readline_int("Number of rounds", 3, 1, MAX_NUM_ROUNDS);
-            int num_players = readline_int("Number of players", 2, 1, MAX_NUM_PLAYERS);
-            start_server(ctx, num_players, num_rounds, PORT);
+            int num_rounds, num_players;
+            if (!readline_int("Number of rounds", 3, 1, MAX_NUM_ROUNDS, &num_rounds)
+                || !readline_int("Number of players", 2, 1, MAX_NUM_PLAYERS, &num_players))
+            {
+                exit = true;
+            }
+            else
+            {
+                start_server(ctx, num_players, num_rounds, PORT);
+            }
             break;
         }
         case 'b':
@@ -117,11 +124,14 @@ static void recommender(MM_Context *ctx, MM_Strategy strategy)
 
 static void options(MM_Context **ctx, const char *const *colors)
 {
-    int max_guesses = readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES);
-    int num_slots   = readline_int("Number of slots", mm_get_num_slots(*ctx), 1, MAX_NUM_SLOTS);
-    int num_colors  = readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS);
-    mm_free_ctx(*ctx);
-    *ctx = mm_new_ctx(max_guesses, num_slots, num_colors, colors);
+    int max_guesses, num_slots, num_colors;
+    if (readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES, &max_guesses)
+        && readline_int("Number of slots", mm_get_num_slots(*ctx), 1, MAX_NUM_SLOTS, &num_slots)
+        && readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS, &num_colors))
+    {
+        mm_free_ctx(*ctx);
+        *ctx = mm_new_ctx(max_guesses, num_slots, num_colors, colors);
+    }
 }
 
 static void singleplayer(MM_Context *ctx)
@@ -147,25 +157,32 @@ int main()
         clear_input();
         bool exit = false;
 
-        switch (to_lower(input[0]))
+        if (input == NULL)
         {
-        case 's':
-            singleplayer(ctx);
-            break;
-        case 'r':
-            recommender(ctx, MM_STRAT_AVERAGE);
-            break;
-        case 'm':
-            multiplayer(ctx, colors);
-            break;
-        case 'o':
-            options(&ctx, colors);
-            break;
-        case 'e':
             exit = true;
-            break;
         }
-        free(input);
+        else
+        {
+            switch (to_lower(input[0]))
+            {
+            case 's':
+                singleplayer(ctx);
+                break;
+            case 'r':
+                recommender(ctx, MM_STRAT_AVERAGE);
+                break;
+            case 'm':
+                multiplayer(ctx, colors);
+                break;
+            case 'o':
+                options(&ctx, colors);
+                break;
+            case 'e':
+                exit = true;
+                break;
+            }
+            free(input);
+        }
         if (exit)
         {
             break;

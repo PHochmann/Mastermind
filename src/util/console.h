@@ -28,4 +28,4 @@ void print_round_summary_table(MM_Context *ctx,
                                Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
                                int round);
 
-int readline_int(const char *prompt, int default_value, int min, int max);
+bool readline_int(const char *prompt, int default_value, int min, int max, int *result);

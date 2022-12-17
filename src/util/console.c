@@ -69,6 +69,10 @@ Feedback_t read_feedback(MM_Context *ctx)
     while (!validated)
     {
         input = readline(strb_to_str(&pb));
+        if (input == NULL)
+        {
+            continue;
+        }
         clear_input();
 
         if (strlen(input) == 2)
@@ -101,6 +105,10 @@ Code_t read_colors(MM_Context *ctx, int turn)
     while (!validated)
     {
         input = readline(strb_to_str(&pb));
+        if (input == NULL)
+        {
+            continue;
+        }
         clear_input();
 
         if ((int)strlen(input) == mm_get_num_slots(ctx))
@@ -285,29 +293,32 @@ void print_round_summary_table(MM_Context *ctx,
     free_table(tbl);
 }
 
-int readline_int(const char *prompt, int default_value, int min, int max)
+bool readline_int(const char *prompt, int default_value, int min, int max, int *result)
 {
     StringBuilder builder = strb_create();
     strb_append(&builder, "%s", prompt);
     strb_append(&builder, " (%d-%d, default: %d): ", min, max, default_value);
     bool validated = false;
-    int result;
     while (!validated)
     {
         char *input = readline(strb_to_str(&builder));
+        if (input == NULL)
+        {
+            return false;
+        }
         clear_input();
         if (input[0] == '\0')
         {
             free(input);
             return default_value;
         }
-        result = strtol(input, NULL, 10);
-        if ((errno != ERANGE) && (result >= min) && (result <= max))
+        *result = strtol(input, NULL, 10);
+        if ((errno != ERANGE) && (*result >= min) && (*result <= max))
         {
             validated = true;
         }
         free(input);
     }
     strb_destroy(&builder);
-    return result;
+    return true;
 }
