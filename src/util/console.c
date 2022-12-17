@@ -310,7 +310,8 @@ bool readline_int(const char *prompt, int default_value, int min, int max, int *
         if (input[0] == '\0')
         {
             free(input);
-            return default_value;
+            *result = default_value;
+            return true;
         }
         *result = strtol(input, NULL, 10);
         if ((errno != ERANGE) && (*result >= min) && (*result <= max))

@@ -60,36 +60,42 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
         input = readline("(c)lient, (s)erver or (b)ack? ");
         clear_input();
         bool exit = false;
-
-        switch (to_lower(input[0]))
+        if (input == NULL)
         {
-        case 'c':
-        {
-            char *ip = readline("Server IP Address: ");
-            clear_input();
-            play_client(ip, PORT, colors);
-            free(ip);
-            break;
-        }
-        case 's':
-        {
-            int num_rounds, num_players;
-            if (!readline_int("Number of rounds", 3, 1, MAX_NUM_ROUNDS, &num_rounds)
-                || !readline_int("Number of players", 2, 1, MAX_NUM_PLAYERS, &num_players))
-            {
-                exit = true;
-            }
-            else
-            {
-                start_server(ctx, num_players, num_rounds, PORT);
-            }
-            break;
-        }
-        case 'b':
             exit = true;
-            break;
         }
-        free(input);
+        else
+        {
+            switch (to_lower(input[0]))
+            {
+            case 'c':
+            {
+                char *ip = readline("Server IP Address: ");
+                clear_input();
+                play_client(ip, PORT, colors);
+                free(ip);
+                break;
+            }
+            case 's':
+            {
+                int num_rounds, num_players;
+                if (!readline_int("Number of rounds", 3, 1, MAX_NUM_ROUNDS, &num_rounds)
+                    || !readline_int("Number of players", 2, 1, MAX_NUM_PLAYERS, &num_players))
+                {
+                    exit = true;
+                }
+                else
+                {
+                    start_server(ctx, num_players, num_rounds, PORT);
+                }
+                break;
+            }
+            case 'b':
+                exit = true;
+                break;
+            }
+            free(input);
+        }
         if (exit)
         {
             return;
