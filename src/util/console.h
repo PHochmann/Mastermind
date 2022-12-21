@@ -6,12 +6,12 @@
 char *readline_fmt(const char *fmt, ...);
 void clear_input();
 void clear_screen();
-void any_key();
+void await_enter();
 void print_winning_message(int num_turns);
 void print_losing_message(int num_max_guesses);
 
 Feedback_t read_feedback(MM_Context *ctx);
-Code_t read_colors(MM_Context *ctx, int turn);
+bool read_colors(MM_Context *ctx, int turn, Code_t *out_code);
 void print_colors(MM_Context *ctx, Code_t input);
 void print_feedback(MM_Context *ctx, Feedback_t feedback);
 char *get_colors_string(MM_Context *ctx, Code_t input);

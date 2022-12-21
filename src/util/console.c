@@ -28,10 +28,10 @@ void clear_screen()
     printf("\033[1;1H\033[2J");
 }
 
-void any_key()
+void await_enter()
 {
-    printf("Press enter to continue...");
-    getchar();
+    while (getchar() == '\n')
+        ;
 }
 
 void print_winning_message(int num_turns)
@@ -88,7 +88,7 @@ Feedback_t read_feedback(MM_Context *ctx)
     return mm_feedback_to_code(ctx, input[0] - '0', input[1] - '0');
 }
 
-Code_t read_colors(MM_Context *ctx, int turn)
+bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 {
     StringBuilder pb = strb_create();
     strb_append(&pb, "%d/%d colors [", turn + 1, mm_get_max_guesses(ctx));
@@ -107,7 +107,7 @@ Code_t read_colors(MM_Context *ctx, int turn)
         input = readline(strb_to_str(&pb));
         if (input == NULL)
         {
-            continue;
+            return false;
         }
         clear_input();
 
@@ -139,11 +139,11 @@ Code_t read_colors(MM_Context *ctx, int turn)
 
         free(input);
     }
-    Code_t result = mm_colors_to_code(ctx, colors);
-    print_colors(ctx, result);
+    *out_code = mm_colors_to_code(ctx, colors);
+    print_colors(ctx, *out_code);
     printf("\n");
     strb_destroy(&pb);
-    return result;
+    return true;
 }
 
 void print_colors(MM_Context *ctx, Code_t input)
@@ -302,11 +302,11 @@ bool readline_int(const char *prompt, int default_value, int min, int max, int *
     while (!validated)
     {
         char *input = readline(strb_to_str(&builder));
+        clear_input();
         if (input == NULL)
         {
             return false;
         }
-        clear_input();
         if (input[0] == '\0')
         {
             free(input);

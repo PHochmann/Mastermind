@@ -5,41 +5,53 @@
 #define MAX_PLAYER_NAME_BYTES 11 // Including \0
 #define MAX_NUM_ROUNDS        10
 
-typedef struct
+typedef enum
 {
-    char name[MAX_PLAYER_NAME_BYTES];
-} NicknamePackage_Q;
+    PLAYER_STATE_NOT_CONNECTED = 0,
+    PLAYER_STATE_CONNECTED,
+    PLAYER_STATE_NAME_PUTTING,
+    PLAYER_STATE_NAME_SENT,
+    PLAYER_STATE_NOT_ACKED,
+    PLAYER_STATE_ACKED,
+    PLAYER_STATE_GUESSING,
+    PLAYER_STATE_AWAITING_FEEDBACK,
+    PLAYER_STATE_FINISHED,
+    PLAYER_STATE_ABORTED,
+    PLAYER_STATE_TIMEOUT
+} PlayerState;
 
 typedef struct
 {
-    bool is_accepted;
+    PlayerState new_state;
+} PlayerStateTransition_Q;
+
+typedef struct
+{
+    PlayerState new_state;
     bool waiting_for_others;
-} NicknamePackage_R;
+} PlayerStateTransition_R;
 
+// Is sent by server directly after connection
 typedef struct
 {
     int num_rounds;
     int max_guesses;
     int num_slots;
     int num_players;
-    char players[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES];
     int num_colors;
-} GameBeginPackage_R;
+} RulesPackage_R;
 
+// Is sent by client to propose a nickname
 typedef struct
 {
-    int dummy;
-} ReadyPackage_Q;
+    char name[MAX_PLAYER_NAME_BYTES];
+} NicknamePackage_Q;
 
+// Is sent by server to announce all player nicknames after each player's nickname got accepted
 typedef struct
 {
-    bool waiting_for_others;
-} ReadyPackage_R;
-
-typedef struct
-{
-    int dummy;
-} RoundBeginPackage_R;
+    char players[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES];
+} AllNicknamesPackage_R;
 
 typedef struct
 {
@@ -49,9 +61,7 @@ typedef struct
 typedef struct
 {
     Feedback_t feedback;
-    bool lost;
     Code_t solution;
-    bool waiting_for_others;
 } FeedbackPackage_R;
 
 typedef struct

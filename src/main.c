@@ -24,7 +24,8 @@
 #define DRG "\033[38:2:085:107:047m"
 #define RST "\033[0m"
 
-#define PORT 25567
+#define DEFAULT_IP "127.0.0.1"
+#define PORT       25567
 
 static MM_Match *play_game(MM_Context *ctx, Code_t solution)
 {
@@ -52,6 +53,37 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
     return match;
 }
 
+static void recommender(MM_Context *ctx, MM_Strategy strategy)
+{
+    MM_Match *match     = mm_new_match(ctx, true);
+    Feedback_t feedback = 0;
+    while (mm_get_state(match) == MM_MATCH_PENDING)
+    {
+        Code_t recommendation = mm_recommend(match, strategy);
+        print_colors(ctx, recommendation);
+        printf("\n");
+        feedback = read_feedback(ctx);
+        print_feedback(ctx, feedback);
+        printf("\n");
+        mm_constrain(match, recommendation, feedback);
+        if (mm_get_remaining_solutions(match) == 0)
+        {
+            printf("That's not possible - inconsistent feedback given\n\n");
+            mm_free_match(match);
+            return;
+        }
+    }
+    if (mm_get_state(match) == MM_MATCH_WON)
+    {
+        printf("I knew I would guess right! I'm the best!\n\n");
+    }
+    else
+    {
+        printf("I did not make it, I'm a bad AI :(\n\n");
+    }
+    mm_free_match(match);
+}
+
 static void multiplayer(MM_Context *ctx, const char *const *colors)
 {
     char *input = NULL;
@@ -70,10 +102,24 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
             {
             case 'c':
             {
-                char *ip = readline("Server IP Address: ");
+                char *ip = readline_fmt("Server IP Address (default %s): ", DEFAULT_IP);
                 clear_input();
-                play_client(ip, PORT, colors);
-                free(ip);
+                if (ip == NULL)
+                {
+                    exit = true;
+                }
+                else
+                {
+                    if (ip[0] == '\0')
+                    {
+                        play_client(DEFAULT_IP, PORT, colors);
+                    }
+                    else
+                    {
+                        play_client(ip, PORT, colors);
+                    }
+                    free(ip);
+                }
                 break;
             }
             case 's':
@@ -101,31 +147,6 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
             return;
         }
     }
-}
-
-static void recommender(MM_Context *ctx, MM_Strategy strategy)
-{
-    MM_Match *match     = mm_new_match(ctx, true);
-    Feedback_t feedback = 0;
-    while (!mm_is_winning_feedback(ctx, feedback))
-    {
-        uint16_t recommendation = mm_recommend(match, strategy);
-        print_colors(ctx, recommendation);
-        printf("\n");
-        feedback = read_feedback(ctx);
-        print_feedback(ctx, feedback);
-        printf("\n");
-        mm_constrain(match, recommendation, feedback);
-        if (mm_get_remaining_solutions(match) == 0)
-        {
-            printf("That's not possible - inconsistent feedback given. Game "
-                   "aborted.\n\n");
-            mm_free_match(match);
-            return;
-        }
-    }
-    print_winning_message(mm_get_turns(match));
-    mm_free_match(match);
 }
 
 static void options(MM_Context **ctx, const char *const *colors)
