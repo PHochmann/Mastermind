@@ -1,6 +1,7 @@
 #pragma once
 #include <stdarg.h>
 #include <stdbool.h>
+#include "../multiplayer/protocol.h"
 
 bool is_space(char c);
 bool is_digit(char c);
@@ -16,3 +17,4 @@ char *strip(char *str);
 const char *first_char(const char *string);
 char to_lower(char c);
 char to_upper(char c);
+const char *player_state_to_str(PlayerState state);

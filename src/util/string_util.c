@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../multiplayer/protocol.h"
+
 #include "string_util.h"
 
 #define ESC_START 27
@@ -202,5 +204,42 @@ char to_upper(char c)
     else
     {
         return '~';
+    }
+}
+
+const char *player_state_to_str(PlayerState state)
+{
+    switch (state)
+    {
+    case PLAYER_STATE_NONE:
+        return "PLAYER_STATE_NONE";
+    case PLAYER_STATE_CONNECTED:
+        return "PLAYER_STATE_CONNECTED";
+    case PLAYER_STATE_RULES_RECEIVED:
+        return "PLAYER_STATE_RULES_RECEIVED";
+    case PLAYER_STATE_CHOOSING_NAME:
+        return "PLAYER_STATE_CHOOSING_NAME";
+    case PLAYER_STATE_SENT_NAME:
+        return "PLAYER_STATE_SENT_NAME";
+    case PLAYER_STATE_NOT_ACKED:
+        return "PLAYER_STATE_NOT_ACKED";
+    case PLAYER_STATE_ACKED:
+        return "PLAYER_STATE_ACKED";
+    case PLAYER_STATE_GUESSING:
+        return "PLAYER_STATE_GUESSING";
+    case PLAYER_STATE_AWAITING_FEEDBACK:
+        return "PLAYER_STATE_AWAITING_FEEDBACK";
+    case PLAYER_STATE_GOT_FEEDBACK:
+        return "PLAYER_STATE_GOT_FEEDBACK";
+    case PLAYER_STATE_FINISHED:
+        return "PLAYER_STATE_FINISHED";
+    case PLAYER_STATE_ABORTED:
+        return "PLAYER_STATE_ABORTED";
+    case PLAYER_STATE_TIMEOUT:
+        return "PLAYER_STATE_TIMEOUT";
+    case PLAYER_STATE_DISCONNECTED:
+        return "PLAYER_STATE_DISCONNECTED";
+    default:
+        return "???";
     }
 }

@@ -33,8 +33,15 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
     MM_Match *match     = mm_new_match(ctx, false);
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
-        Code_t input = read_colors(ctx, mm_get_turns(match));
-        feedback     = mm_get_feedback(ctx, input, solution);
+        Code_t input;
+        if (!read_colors(ctx, mm_get_turns(match), &input))
+        {
+            printf("Aborted. Solution was: ");
+            print_colors(ctx, solution);
+            printf("\n");
+            return match;
+        }
+        feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_feedback(ctx, feedback);
         printf("\n");

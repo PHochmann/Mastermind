@@ -7,33 +7,31 @@
 
 typedef enum
 {
-    PLAYER_STATE_NOT_CONNECTED = 0,
+    PLAYER_STATE_NONE = 0,
     PLAYER_STATE_CONNECTED,
-    PLAYER_STATE_NAME_PUTTING,
-    PLAYER_STATE_NAME_SENT,
+    PLAYER_STATE_RULES_RECEIVED,
+    PLAYER_STATE_CHOOSING_NAME,
+    PLAYER_STATE_SENT_NAME,
     PLAYER_STATE_NOT_ACKED,
     PLAYER_STATE_ACKED,
     PLAYER_STATE_GUESSING,
     PLAYER_STATE_AWAITING_FEEDBACK,
+    PLAYER_STATE_GOT_FEEDBACK,
     PLAYER_STATE_FINISHED,
     PLAYER_STATE_ABORTED,
-    PLAYER_STATE_TIMEOUT
+    PLAYER_STATE_TIMEOUT,
+    PLAYER_STATE_DISCONNECTED,
 } PlayerState;
 
 typedef struct
 {
-    PlayerState new_state;
-} PlayerStateTransition_Q;
-
-typedef struct
-{
-    PlayerState new_state;
-    bool waiting_for_others;
-} PlayerStateTransition_R;
+    PlayerState state;
+} StateTransition_RQ;
 
 // Is sent by server directly after connection
 typedef struct
 {
+    int player_id;
     int num_rounds;
     int max_guesses;
     int num_slots;
@@ -61,7 +59,9 @@ typedef struct
 typedef struct
 {
     Feedback_t feedback;
+    MM_MatchState match_state;
     Code_t solution;
+    bool waiting_for_others;
 } FeedbackPackage_R;
 
 typedef struct

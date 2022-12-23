@@ -30,7 +30,7 @@ void clear_screen()
 
 void await_enter()
 {
-    while (getchar() == '\n')
+    while (getchar() != '\n')
         ;
 }
 
@@ -91,7 +91,7 @@ Feedback_t read_feedback(MM_Context *ctx)
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 {
     StringBuilder pb = strb_create();
-    strb_append(&pb, "%d/%d colors [", turn + 1, mm_get_max_guesses(ctx));
+    strb_append(&pb, "%d/%d colors [", turn, mm_get_max_guesses(ctx));
     for (int i = 0; i < mm_get_num_colors(ctx); i++)
     {
         strb_append(&pb, "%c", mm_get_color_char(ctx, i));
@@ -105,11 +105,11 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
     while (!validated)
     {
         input = readline(strb_to_str(&pb));
+        clear_input();
         if (input == NULL)
         {
             return false;
         }
-        clear_input();
 
         if ((int)strlen(input) == mm_get_num_slots(ctx))
         {
@@ -240,7 +240,7 @@ void print_round_summary_table(MM_Context *ctx,
     Table *tbl = get_empty_table();
     set_span(tbl, num_players * 3, 1);
     override_horizontal_alignment(tbl, H_ALIGN_CENTER);
-    add_cell_fmt(tbl, "Summary of round %d", round + 1);
+    add_cell_fmt(tbl, "Summary of round %d", round);
     next_row(tbl);
     set_hline(tbl, BORDER_SINGLE);
 

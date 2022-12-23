@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -14,15 +15,19 @@
 #include "client.h"
 #include "protocol.h"
 
-#define RETRY_WAIT_MS 100
+#define RETRY_WAIT_MS 500
 
 typedef struct
 {
     int socket;
+    PlayerState previous_state;
     PlayerState state;
-    bool waiting_for_others;
     const char *const *colors;
     MM_Context *ctx;
+    int curr_round;
+    int curr_turn;
+    AllNicknamesPackage_R names;
+    RulesPackage_R rules;
 } ClientData;
 
 static int connect_to_server(const char *ip, int port, int retries)
@@ -30,7 +35,7 @@ static int connect_to_server(const char *ip, int port, int retries)
     int socket_to_server = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_to_server < 0)
     {
-        printf("Error creating socket.\n");
+        printf("Error creating socket\n");
         return -1;
     }
 
@@ -57,82 +62,25 @@ static int connect_to_server(const char *ip, int port, int retries)
         }
     }
 
-    printf("Error connecting to server.\n");
+    printf("Error connecting to server\n");
     return -1;
 }
 
 static void receive_transition(ClientData *data)
 {
-    PlayerStateTransition_R response;
-    recv(data->socket, &response, sizeof(PlayerStateTransition_R), 0);
-    data->state = response.new_state;
+    StateTransition_RQ response;
+    recv(data->socket, &response, sizeof(StateTransition_RQ), 0);
+    data->state = response.state;
+    printf("Received state %s\n", player_state_to_str(response.state));
 }
 
-static void send_transition(ClientData *data, PlayerState new_state)
+static void send_transition(ClientData *data, PlayerState state)
 {
-    PlayerStateTransition_Q state_change;
-    state_change.new_state = new_state;
-    send(data->socket, &state_change, sizeof(PlayerStateTransition_Q), 0);
-}
-
-static bool handle_transition(ClientData *data)
-{
-    if (data->state == PLAYER_STATE_CONNECTED)
-    {
-        RulesPackage_R rules;
-        recv(data->socket, &rules, sizeof(RulesPackage_R), 0);
-        printf("\n~ ~ Server rules ~ ~\n");
-        printf("%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
-               rules.num_players, rules.num_colors, rules.num_slots,
-               rules.max_guesses, rules.num_rounds);
-        data->ctx = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, data->colors);
-    }
-    else if (data->state == PLAYER_STATE_NAME_PUTTING)
-    {
-        NicknamePackage_Q name_pkg;
-        bool validated = false;
-        while (!validated)
-        {
-            char *nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
-            if (nickname == NULL)
-            {
-                if (abort_game(data))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (strlen(nickname) >= MAX_PLAYER_NAME_BYTES)
-                {
-                    printf("Name too long\n");
-                }
-                else
-                {
-                    validated = true;
-                    strncpy(name_pkg.name, nickname, MAX_PLAYER_NAME_BYTES);
-                }
-                free(nickname);
-            }
-        }
-
-        send_transition(data, PLAYER_STATE_NAME_SENT);
-        send(data->socket, &name_pkg, sizeof(NicknamePackage_Q), 0);
-    }
-    else if ()
-    {
-        // Todo
-    }
-    else if (data->state == PLAYER_STATE_ABORTED)
-    {
-        printf("Game aborted by server.\n");
-        return false;
-    }
-    else if (data->state == PLAYER_STATE_TIMEOUT)
-    {
-        printf("Timeout\n");
-    }
-    return true;
+    StateTransition_RQ state_change = {
+        .state = state
+    };
+    send(data->socket, &state_change, sizeof(StateTransition_RQ), 0);
+    data->state = state;
 }
 
 static bool abort_game(ClientData *data)
@@ -167,6 +115,169 @@ static bool abort_game(ClientData *data)
     return true;
 }
 
+static void handle_transition(ClientData *data)
+{
+    if (data->state == PLAYER_STATE_RULES_RECEIVED)
+    {
+        RulesPackage_R rules;
+        recv(data->socket, &rules, sizeof(RulesPackage_R), 0);
+        printf("~ ~ Server rules ~ ~\n"
+               "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n\n",
+               rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
+        data->rules = rules;
+        data->ctx   = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, data->colors);
+    }
+    else if (data->state == PLAYER_STATE_CHOOSING_NAME)
+    {
+        if (data->previous_state == PLAYER_STATE_SENT_NAME)
+        {
+            printf("The name you entered is already used by another player\n");
+        }
+
+        NicknamePackage_Q name_pkg;
+        bool validated = false;
+        while (!validated)
+        {
+            char *nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
+            if (nickname == NULL)
+            {
+                if (abort_game(data))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if (strlen(nickname) >= MAX_PLAYER_NAME_BYTES)
+                {
+                    printf("Name too long\n");
+                }
+                else
+                {
+                    validated = true;
+                    strncpy(name_pkg.name, nickname, MAX_PLAYER_NAME_BYTES);
+                }
+                free(nickname);
+            }
+        }
+
+        send_transition(data, PLAYER_STATE_SENT_NAME);
+        send(data->socket, &name_pkg, sizeof(NicknamePackage_Q), 0);
+    }
+    else if (data->state == PLAYER_STATE_NOT_ACKED)
+    {
+        if (data->curr_round != 0)
+        {
+            RoundEndPackage_R summary;
+            recv(data->socket, &summary, sizeof(RoundEndPackage_R), 0);
+            print_round_summary_table(data->ctx, data->rules.num_players, data->names.players,
+                                      summary.num_turns, summary.guesses,
+                                      summary.feedbacks, data->curr_round);
+            if (data->curr_round == data->rules.num_rounds)
+            {
+                int best_points = 0;
+                for (int i = 0; i < data->rules.num_players; i++)
+                {
+                    if (best_points < summary.points[i])
+                    {
+                        best_points = summary.points[i];
+                    }
+                }
+                print_game_summary_table(data->rules.num_players, data->names.players, summary.points, best_points);
+                return;
+            }
+        }
+
+        printf("Press enter when you're ready for the %s round.", ((data->curr_round == 0) ? "first" : "next"));
+        await_enter();
+        send_transition(data, PLAYER_STATE_ACKED);
+    }
+    else if (data->state == PLAYER_STATE_ACKED)
+    {
+        printf("Waiting for other players...\n");
+    }
+    else if (data->state == PLAYER_STATE_GUESSING)
+    {
+        if (data->curr_round == 0) // Indicates beginning of first round
+        {
+            AllNicknamesPackage_R all_names;
+            recv(data->socket, &all_names, sizeof(AllNicknamesPackage_R), 0);
+            data->names = all_names;
+        }
+
+        if (data->curr_turn == 0) // Indicates beginning of round
+        {
+            data->curr_round++;
+            printf("\n~ ~ Round %d/%d ~ ~\n", data->curr_round, data->rules.num_rounds);
+        }
+
+        data->curr_turn++;
+
+        GuessPackage_Q guess_package;
+        bool validated = false;
+        while (!validated)
+        {
+            if (!read_colors(data->ctx, data->curr_turn, &guess_package.guess))
+            {
+                if (!abort_game(data))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                validated = true;
+            }
+        }
+
+        send_transition(data, PLAYER_STATE_AWAITING_FEEDBACK);
+        send(data->socket, &guess_package, sizeof(GuessPackage_Q), 0);
+    }
+    else if (data->state == PLAYER_STATE_GOT_FEEDBACK)
+    {
+        FeedbackPackage_R feedback;
+        recv(data->socket, &feedback, sizeof(FeedbackPackage_R), 0);
+        print_feedback(data->ctx, feedback.feedback);
+        printf("\n");
+
+        switch (feedback.match_state)
+        {
+        case MM_MATCH_LOST:
+            printf("~ ~ Game Over! ~ ~\n");
+            printf("~ ~ Solution: ");
+            print_colors(data->ctx, feedback.solution);
+            printf(" ~ ~\n");
+            break;
+        case MM_MATCH_WON:
+            printf("~ ~ You guessed right! ~ ~\n");
+            break;
+        case MM_MATCH_PENDING:
+            break;
+        }
+
+        if (feedback.match_state != MM_MATCH_PENDING && feedback.waiting_for_others)
+        {
+            printf("Waiting for other players to finish the round...\n");
+        }
+    }
+    else if (data->state == PLAYER_STATE_FINISHED)
+    {
+        data->curr_turn = 0;
+    }
+    else if (data->state == PLAYER_STATE_ABORTED)
+    {
+        printf("Game aborted by server.\n");
+    }
+    else if (data->state == PLAYER_STATE_TIMEOUT)
+    {
+        printf("Timeout!\n");
+    }
+    else if (data->state == PLAYER_STATE_DISCONNECTED)
+    {
+        printf("Disconnected from server. Bye!\n");
+    }
+}
+
 void play_client(const char *ip, int port, const char *const *colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
@@ -177,147 +288,15 @@ void play_client(const char *ip, int port, const char *const *colors)
     }
 
     ClientData data = {
-        .socket = socket,
-        .colors = colors,
-        .state  = PLAYER_STATE_CONNECTED
+        .socket     = socket,
+        .colors     = colors,
+        .state      = PLAYER_STATE_CONNECTED,
+        .curr_round = 0
     };
 
-    // Read nickname from player and send it to server
-    char *nickname                      = NULL;
-    NicknamePackage_R nickname_response = { 0 };
-    while (!nickname_response.is_accepted)
+    while (data.state != PLAYER_STATE_DISCONNECTED)
     {
-        free(nickname);
-        nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
-        if (nickname == NULL)
-        {
-            if (abort_game(sock))
-            {
-                close(sock);
-                return;
-            }
-        }
-        else
-        {
-            if (strlen(nickname) >= MAX_PLAYER_NAME_BYTES)
-            {
-                printf("Name too long\n");
-            }
-            else
-            {
-                NicknamePackage_Q request;
-                strncpy(request.name, nickname, MAX_PLAYER_NAME_BYTES);
-                send(sock, &request, sizeof(NicknamePackage_Q), 0);
-                if (!recv_pkg(sock, &nickname_response, sizeof(NicknamePackage_R)))
-                {
-                    abort_by_server();
-                    close(sock);
-                    free(nickname);
-                    return;
-                }
-                if (!nickname_response.is_accepted)
-                {
-                    printf("Name already taken, please use another.\n");
-                }
-            }
-        }
+        receive_transition(&data);
+        handle_transition(&data);
     }
-
-    if (nickname_response.waiting_for_others)
-    {
-        printf("Waiting for the other players...\n");
-    }
-
-    // Nickname is accepted, wait for names of other players
-    AllNicknamesPackage_R names;
-    if (!recv_pkg(sock, &names, sizeof(AllNicknamesPackage_R)))
-    {
-        abort_by_server();
-        goto exit;
-    }
-
-    for (int i = 0; i < rules.num_rounds; i++)
-    {
-        printf("Press enter when you're ready for the %s round.", ((i == 0) ? "first" : "next"));
-        await_enter();
-        ReadyPackage_Q ack;
-        send(sock, &ack, sizeof(ReadyPackage_Q), 0);
-        ReadyPackage_R answer;
-        if (!recv(sock, &answer, sizeof(ReadyPackage_R), 0);
-        if (answer.waiting_for_others)
-        {
-            printf("Waiting for other players...\n");
-        }
-        RoundBeginPackage_R begin;
-        recv(sock, &begin, sizeof(RoundEndPackage_R), 0);
-
-        printf("\n~ ~ Round %d/%d ~ ~\n", i + 1, rules.num_rounds);
-
-        bool finished = false;
-        int counter   = 0;
-        while (!finished)
-        {
-            GuessPackage_Q guess_package;
-            if (!read_colors(ctx, counter, &guess_package.guess))
-            {
-                if (abort_game(sock))
-                {
-                    free(nickname);
-                    close(sock);
-                    return;
-                }
-            }
-            counter++;
-            send(sock, &guess_package, sizeof(GuessPackage_Q), 0);
-
-            FeedbackPackage_R feedback_package;
-            recv(sock, &feedback_package, sizeof(FeedbackPackage_R), 0);
-            print_feedback(ctx, feedback_package.feedback);
-            printf("\n");
-
-            if (feedback_package.lost)
-            {
-                printf("~ ~ Game Over! ~ ~\n");
-                printf("~ ~ Solution: ");
-                print_colors(ctx, feedback_package.solution);
-                printf(" ~ ~\n");
-                finished = true;
-            }
-            else if (mm_is_winning_feedback(ctx, feedback_package.feedback))
-            {
-                printf("~ ~ You guessed right! ~ ~\n");
-                finished = true;
-            }
-
-            if (finished && feedback_package.waiting_for_others)
-            {
-                printf("Waiting for all players to finish...\n");
-            }
-        }
-
-        RoundEndPackage_R summary;
-        recv(sock, &summary, sizeof(RoundEndPackage_R), 0);
-        print_round_summary_table(ctx, rules.num_players, names.players,
-                                  summary.num_turns, summary.guesses,
-                                  summary.feedbacks, i);
-        for (int j = 0; j < rules.num_players; j++)
-        {
-            total_points[j] = summary.points[j];
-        }
-    }
-
-    int best_points = 0;
-    for (int i = 0; i < rules.num_players; i++)
-    {
-        if (best_points < total_points[i])
-        {
-            best_points = total_points[i];
-        }
-    }
-
-    print_game_summary_table(rules.num_players, names.players, total_points, best_points);
-    printf("\n");
-exit:
-    free(nickname);
-    close(sock);
 }
