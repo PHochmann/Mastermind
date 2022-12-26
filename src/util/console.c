@@ -28,12 +28,6 @@ void clear_screen()
     printf("\033[1;1H\033[2J");
 }
 
-void await_enter()
-{
-    while (getchar() != '\n')
-        ;
-}
-
 void print_winning_message(int num_turns)
 {
     printf("~ ~ Game won in %d steps ~ ~\n\n", num_turns);

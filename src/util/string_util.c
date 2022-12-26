@@ -207,38 +207,38 @@ char to_upper(char c)
     }
 }
 
-const char *player_state_to_str(PlayerState state)
+const char *plstate_to_str(PlayerState state)
 {
     switch (state)
     {
     case PLAYER_STATE_NONE:
-        return "PLAYER_STATE_NONE";
+        return "NONE";
     case PLAYER_STATE_CONNECTED:
-        return "PLAYER_STATE_CONNECTED";
+        return "CONNECTED";
     case PLAYER_STATE_RULES_RECEIVED:
-        return "PLAYER_STATE_RULES_RECEIVED";
+        return "RULES_RECEIVED";
     case PLAYER_STATE_CHOOSING_NAME:
-        return "PLAYER_STATE_CHOOSING_NAME";
+        return "CHOOSING_NAME";
     case PLAYER_STATE_SENT_NAME:
-        return "PLAYER_STATE_SENT_NAME";
+        return "SENT_NAME";
     case PLAYER_STATE_NOT_ACKED:
-        return "PLAYER_STATE_NOT_ACKED";
+        return "NOT_ACKED";
     case PLAYER_STATE_ACKED:
-        return "PLAYER_STATE_ACKED";
+        return "ACKED";
     case PLAYER_STATE_GUESSING:
-        return "PLAYER_STATE_GUESSING";
+        return "GUESSING";
     case PLAYER_STATE_AWAITING_FEEDBACK:
-        return "PLAYER_STATE_AWAITING_FEEDBACK";
+        return "AWAITING_FEEDBACK";
     case PLAYER_STATE_GOT_FEEDBACK:
-        return "PLAYER_STATE_GOT_FEEDBACK";
+        return "GOT_FEEDBACK";
     case PLAYER_STATE_FINISHED:
-        return "PLAYER_STATE_FINISHED";
+        return "FINISHED";
     case PLAYER_STATE_ABORTED:
-        return "PLAYER_STATE_ABORTED";
+        return "ABORTED";
     case PLAYER_STATE_TIMEOUT:
-        return "PLAYER_STATE_TIMEOUT";
+        return "TIMEOUT";
     case PLAYER_STATE_DISCONNECTED:
-        return "PLAYER_STATE_DISCONNECTED";
+        return "DISCONNECTED";
     default:
         return "???";
     }

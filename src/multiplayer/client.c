@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <readline/readline.h>
+#include <signal.h>
 
 #include "../mastermind.h"
 #include "../util/console.h"
@@ -16,7 +17,6 @@
 #include "protocol.h"
 
 #define RETRY_WAIT_MS 500
-
 typedef struct
 {
     int socket;
@@ -29,6 +29,60 @@ typedef struct
     AllNicknamesPackage_R names;
     RulesPackage_R rules;
 } ClientData;
+
+static const Transition allowed_recv_transitions[] = {
+    { PLAYER_STATE_CONNECTED, PLAYER_STATE_RULES_RECEIVED },
+    { PLAYER_STATE_RULES_RECEIVED, PLAYER_STATE_CHOOSING_NAME },
+    { PLAYER_STATE_SENT_NAME, PLAYER_STATE_CHOOSING_NAME },
+    { PLAYER_STATE_SENT_NAME, PLAYER_STATE_NOT_ACKED },
+    { PLAYER_STATE_ACKED, PLAYER_STATE_GUESSING },
+    { PLAYER_STATE_ACKED, PLAYER_STATE_ACKED },
+    { PLAYER_STATE_ACKED, PLAYER_STATE_FINISHED },
+    { PLAYER_STATE_FINISHED, PLAYER_STATE_NOT_ACKED },
+    { PLAYER_STATE_FINISHED, PLAYER_STATE_DISCONNECTED },
+};
+
+static const int num_allowed_recv_transitions = sizeof(allowed_recv_transitions) / sizeof(Transition);
+
+bool sigint;
+bool sigpipe;
+
+static bool receive(int socket, void *buffer, size_t length)
+{
+    if ((recv(socket, buffer, length, MSG_WAITALL) < (ssize_t)length) || sigpipe)
+    {
+        printf("recv false\n");
+        return false;
+    }
+    return true;
+}
+
+static void sigint_handler(int signum)
+{
+    if (signum == SIGINT)
+    {
+        sigint = true;
+    }
+}
+
+static void sigpipe_handler(int signum)
+{
+    if (signum == SIGPIPE)
+    {
+        sigpipe = true;
+    }
+}
+
+static void close_sockets(ClientData *data)
+{
+    close(data->socket);
+}
+
+static void await_enter_abortable()
+{
+    while (getchar() != '\n' || sigint)
+        ;
+}
 
 static int connect_to_server(const char *ip, int port, int retries)
 {
@@ -48,13 +102,16 @@ static int connect_to_server(const char *ip, int port, int retries)
 
     while (retries != 0)
     {
-        if (connect(socket_to_server, (struct sockaddr *)&server_ip, sizeof(server_ip)) == -1)
+        if (connect(socket_to_server, (struct sockaddr *)&server_ip, sizeof(struct sockaddr_in)) != 0)
         {
             if (retries > 0)
             {
                 retries--;
             }
-            usleep(RETRY_WAIT_MS * 1000);
+            if (sigint || (usleep(RETRY_WAIT_MS * 1000) == -1))
+            {
+                return -1;
+            }
         }
         else
         {
@@ -66,16 +123,41 @@ static int connect_to_server(const char *ip, int port, int retries)
     return -1;
 }
 
-static void receive_transition(ClientData *data)
+static bool receive_transition(ClientData *data)
 {
     StateTransition_RQ response;
-    recv(data->socket, &response, sizeof(StateTransition_RQ), 0);
-    data->state = response.state;
-    printf("Received state %s\n", player_state_to_str(response.state));
+    if (!receive(data->socket, &response, sizeof(StateTransition_RQ)))
+    {
+        response.state = PLAYER_STATE_DISCONNECTED;
+    }
+
+    bool legal_transition = false;
+    for (int i = 0; i < num_allowed_recv_transitions; i++)
+    {
+        if (allowed_recv_transitions[i].from == data->state
+            && allowed_recv_transitions[i].to == response.state)
+        {
+            legal_transition = true;
+            break;
+        }
+    }
+    if (legal_transition || (data->state == PLAYER_STATE_ABORTED) || (data->state == PLAYER_STATE_TIMEOUT))
+    {
+        data->previous_state = data->state;
+        data->state          = response.state;
+        printf("Transition received: %s -> %s.\n", plstate_to_str(data->previous_state), plstate_to_str(data->state));
+        return true;
+    }
+    else
+    {
+        printf("Illegal transition received: %s -> %s.\n", plstate_to_str(data->state), plstate_to_str(response.state));
+        return false;
+    }
 }
 
 static void send_transition(ClientData *data, PlayerState state)
 {
+    printf("Sending state %s\n", plstate_to_str(state));
     StateTransition_RQ state_change = {
         .state = state
     };
@@ -89,6 +171,10 @@ static bool abort_game(ClientData *data)
     {
         char *input = readline("Do you want to abort the game (yN)? ");
         clear_input();
+        if (input == NULL)
+        {
+            return false;
+        }
         bool confirmed = false;
         switch (to_lower(input[0]))
         {
@@ -96,8 +182,8 @@ static bool abort_game(ClientData *data)
             confirmed = true;
             break;
         case 'n':
-            break;
         case '\0':
+        case '\n':
             break;
         default:
             continue;
@@ -120,9 +206,9 @@ static void handle_transition(ClientData *data)
     if (data->state == PLAYER_STATE_RULES_RECEIVED)
     {
         RulesPackage_R rules;
-        recv(data->socket, &rules, sizeof(RulesPackage_R), 0);
+        receive(data->socket, &rules, sizeof(RulesPackage_R));
         printf("~ ~ Server rules ~ ~\n"
-               "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n\n",
+               "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
                rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
         data->rules = rules;
         data->ctx   = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, data->colors);
@@ -141,6 +227,7 @@ static void handle_transition(ClientData *data)
             char *nickname = readline_fmt("Enter your nickname (max. %d characters): ", MAX_PLAYER_NAME_BYTES - 1);
             if (nickname == NULL)
             {
+                clear_input();
                 if (abort_game(data))
                 {
                     return;
@@ -169,7 +256,7 @@ static void handle_transition(ClientData *data)
         if (data->curr_round != 0)
         {
             RoundEndPackage_R summary;
-            recv(data->socket, &summary, sizeof(RoundEndPackage_R), 0);
+            receive(data->socket, &summary, sizeof(RoundEndPackage_R));
             print_round_summary_table(data->ctx, data->rules.num_players, data->names.players,
                                       summary.num_turns, summary.guesses,
                                       summary.feedbacks, data->curr_round);
@@ -189,7 +276,7 @@ static void handle_transition(ClientData *data)
         }
 
         printf("Press enter when you're ready for the %s round.", ((data->curr_round == 0) ? "first" : "next"));
-        await_enter();
+        await_enter_abortable();
         send_transition(data, PLAYER_STATE_ACKED);
     }
     else if (data->state == PLAYER_STATE_ACKED)
@@ -201,7 +288,7 @@ static void handle_transition(ClientData *data)
         if (data->curr_round == 0) // Indicates beginning of first round
         {
             AllNicknamesPackage_R all_names;
-            recv(data->socket, &all_names, sizeof(AllNicknamesPackage_R), 0);
+            receive(data->socket, &all_names, sizeof(AllNicknamesPackage_R));
             data->names = all_names;
         }
 
@@ -219,7 +306,8 @@ static void handle_transition(ClientData *data)
         {
             if (!read_colors(data->ctx, data->curr_turn, &guess_package.guess))
             {
-                if (!abort_game(data))
+                clear_input();
+                if (abort_game(data))
                 {
                     return;
                 }
@@ -236,7 +324,10 @@ static void handle_transition(ClientData *data)
     else if (data->state == PLAYER_STATE_GOT_FEEDBACK)
     {
         FeedbackPackage_R feedback;
-        recv(data->socket, &feedback, sizeof(FeedbackPackage_R), 0);
+        if (!receive(data->socket, &feedback, sizeof(FeedbackPackage_R)))
+        {
+            return;
+        }
         print_feedback(data->ctx, feedback.feedback);
         printf("\n");
 
@@ -255,7 +346,7 @@ static void handle_transition(ClientData *data)
             break;
         }
 
-        if (feedback.match_state != MM_MATCH_PENDING && feedback.waiting_for_others)
+        if ((feedback.match_state != MM_MATCH_PENDING) && (feedback.waiting_for_others))
         {
             printf("Waiting for other players to finish the round...\n");
         }
@@ -266,7 +357,7 @@ static void handle_transition(ClientData *data)
     }
     else if (data->state == PLAYER_STATE_ABORTED)
     {
-        printf("Game aborted by server.\n");
+        printf("Game aborted.\n");
     }
     else if (data->state == PLAYER_STATE_TIMEOUT)
     {
@@ -281,6 +372,10 @@ static void handle_transition(ClientData *data)
 void play_client(const char *ip, int port, const char *const *colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
+    sigint  = false;
+    sigpipe = false;
+    signal(SIGINT, sigint_handler);
+    signal(SIGPIPE, sigpipe_handler);
     int socket = connect_to_server(ip, port, -1);
     if (socket == -1)
     {
@@ -288,15 +383,30 @@ void play_client(const char *ip, int port, const char *const *colors)
     }
 
     ClientData data = {
-        .socket     = socket,
-        .colors     = colors,
-        .state      = PLAYER_STATE_CONNECTED,
-        .curr_round = 0
+        .socket = socket,
+        .colors = colors,
+        .state  = PLAYER_STATE_CONNECTED
     };
+
+    printf("Connected\n");
 
     while (data.state != PLAYER_STATE_DISCONNECTED)
     {
-        receive_transition(&data);
-        handle_transition(&data);
+        if (!sigint)
+        {
+            if (receive_transition(&data))
+            {
+                handle_transition(&data);
+            }
+        }
+        else
+        {
+            send_transition(&data, PLAYER_STATE_ABORTED);
+            break;
+        }
     }
+
+    signal(SIGINT, SIG_DFL);
+    signal(SIGPIPE, SIG_DFL);
+    close_sockets(&data);
 }

@@ -17,4 +17,4 @@ char *strip(char *str);
 const char *first_char(const char *string);
 char to_lower(char c);
 char to_upper(char c);
-const char *player_state_to_str(PlayerState state);
+const char *plstate_to_str(PlayerState state);

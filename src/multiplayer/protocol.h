@@ -2,7 +2,7 @@
 #include "../mastermind.h"
 
 #define MAX_NUM_PLAYERS       4
-#define MAX_PLAYER_NAME_BYTES 11 // Including \0
+#define MAX_PLAYER_NAME_BYTES 31 // Including \0
 #define MAX_NUM_ROUNDS        10
 
 typedef enum
@@ -27,6 +27,12 @@ typedef struct
 {
     PlayerState state;
 } StateTransition_RQ;
+
+typedef struct server
+{
+    PlayerState from;
+    PlayerState to;
+} Transition;
 
 // Is sent by server directly after connection
 typedef struct
