@@ -1,6 +1,7 @@
 #pragma once
 #include "../mastermind.h"
 
+//#define DEBUG_TRANSITION_LOG
 #define MAX_NUM_PLAYERS       4
 #define MAX_PLAYER_NAME_BYTES 31 // Including \0
 #define MAX_NUM_ROUNDS        10

@@ -63,6 +63,16 @@ static const int num_allowed_recv_transitions = sizeof(allowed_recv_transitions)
 static bool sigint;
 static bool sigpipe;
 
+static void log_transition(PlayerState from, PlayerState to)
+{
+#if defined(DEBUG_TRANSITION_LOG)
+    printf("Transition received: %s -> %s.\n", plstate_to_str(from), plstate_to_str(to));
+#else
+    (void)from;
+    (void)to;
+#endif
+}
+
 static void sigint_handler(int signum)
 {
     if (signum == SIGINT)
@@ -258,7 +268,6 @@ static void send_transition(Player *player, PlayerState state)
     StateTransition_RQ response = {
         .state = state
     };
-    printf("Sending transition: %s -> %s\n", plstate_to_str(player->previous_state), plstate_to_str(response.state));
     send(player->socket, &response, sizeof(StateTransition_RQ), 0);
 }
 
@@ -473,7 +482,7 @@ static bool process_next_transition(ServerData *data)
     {
         data->players[pl].previous_state = data->players[pl].state;
         data->players[pl].state          = next_state;
-        printf("Transition received: %s -> %s.\n", plstate_to_str(data->players[pl].previous_state), plstate_to_str(next_state));
+        log_transition(data->players[pl].previous_state, next_state);
         handle_transition(data, pl);
     }
     else

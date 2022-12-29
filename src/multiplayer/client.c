@@ -38,6 +38,9 @@ static const Transition allowed_recv_transitions[] = {
     { PLAYER_STATE_ACKED, PLAYER_STATE_GUESSING },
     { PLAYER_STATE_ACKED, PLAYER_STATE_ACKED },
     { PLAYER_STATE_ACKED, PLAYER_STATE_FINISHED },
+    { PLAYER_STATE_AWAITING_FEEDBACK, PLAYER_STATE_GOT_FEEDBACK },
+    { PLAYER_STATE_GOT_FEEDBACK, PLAYER_STATE_GUESSING },
+    { PLAYER_STATE_GOT_FEEDBACK, PLAYER_STATE_FINISHED },
     { PLAYER_STATE_FINISHED, PLAYER_STATE_NOT_ACKED },
     { PLAYER_STATE_FINISHED, PLAYER_STATE_DISCONNECTED },
 };
@@ -46,6 +49,16 @@ static const int num_allowed_recv_transitions = sizeof(allowed_recv_transitions)
 
 bool sigint;
 bool sigpipe;
+
+static void log_transition(PlayerState from, PlayerState to)
+{
+#if defined(DEBUG_TRANSITION_LOG)
+    printf("Transition received: %s -> %s.\n", plstate_to_str(from), plstate_to_str(to));
+#else
+    (void)from;
+    (void)to;
+#endif
+}
 
 static bool receive(int socket, void *buffer, size_t length)
 {
@@ -145,7 +158,7 @@ static bool receive_transition(ClientData *data)
     {
         data->previous_state = data->state;
         data->state          = response.state;
-        printf("Transition received: %s -> %s.\n", plstate_to_str(data->previous_state), plstate_to_str(data->state));
+        log_transition(data->previous_state, data->state);
         return true;
     }
     else
@@ -157,7 +170,6 @@ static bool receive_transition(ClientData *data)
 
 static void send_transition(ClientData *data, PlayerState state)
 {
-    printf("Sending state %s\n", plstate_to_str(state));
     StateTransition_RQ state_change = {
         .state = state
     };
@@ -372,6 +384,7 @@ static void handle_transition(ClientData *data)
 void play_client(const char *ip, int port, const char *const *colors)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
+    clear_input();
     sigint  = false;
     sigpipe = false;
     signal(SIGINT, sigint_handler);
@@ -387,8 +400,6 @@ void play_client(const char *ip, int port, const char *const *colors)
         .colors = colors,
         .state  = PLAYER_STATE_CONNECTED
     };
-
-    printf("Connected\n");
 
     while (data.state != PLAYER_STATE_DISCONNECTED)
     {
