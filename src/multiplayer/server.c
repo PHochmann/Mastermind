@@ -488,6 +488,8 @@ static bool process_next_transition(ServerData *data)
     else
     {
         printf("Illegal transition received: %s -> %s.\n", plstate_to_str(data->players[pl].state), plstate_to_str(next_state));
+        send_transition_broadcast(data, PLAYER_STATE_ABORTED);
+        send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
         return false;
     }
     return true;

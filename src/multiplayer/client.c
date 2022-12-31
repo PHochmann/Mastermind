@@ -43,6 +43,7 @@ static const Transition allowed_recv_transitions[] = {
     { PLAYER_STATE_GOT_FEEDBACK, PLAYER_STATE_FINISHED },
     { PLAYER_STATE_FINISHED, PLAYER_STATE_NOT_ACKED },
     { PLAYER_STATE_FINISHED, PLAYER_STATE_DISCONNECTED },
+    { PLAYER_STATE_ABORTED, PLAYER_STATE_DISCONNECTED },
 };
 
 static const int num_allowed_recv_transitions = sizeof(allowed_recv_transitions) / sizeof(Transition);
@@ -147,8 +148,8 @@ static bool receive_transition(ClientData *data)
     bool legal_transition = false;
     for (int i = 0; i < num_allowed_recv_transitions; i++)
     {
-        if (allowed_recv_transitions[i].from == data->state
-            && allowed_recv_transitions[i].to == response.state)
+        if ((allowed_recv_transitions[i].from == data->state)
+            && (allowed_recv_transitions[i].to == response.state))
         {
             legal_transition = true;
             break;
