@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <readline/readline.h>
 
-#include "console.h"
+#include "util/console.h"
 #include "mastermind.h"
 #include "multiplayer/client.h"
 #include "multiplayer/server.h"
@@ -60,13 +60,13 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
     return match;
 }
 
-static void recommender(MM_Context *ctx, MM_Strategy strategy)
+static void recommender(MM_Context *ctx)
 {
     MM_Match *match     = mm_new_match(ctx, true);
     Feedback_t feedback = 0;
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
-        Code_t recommendation = mm_recommend(match, strategy);
+        Code_t recommendation = mm_recommend(match);
         print_colors(ctx, recommendation);
         printf("\n");
         feedback = read_feedback(ctx);
@@ -203,7 +203,7 @@ int main()
                 singleplayer(ctx);
                 break;
             case 'r':
-                recommender(ctx, MM_STRAT_AVERAGE);
+                recommender(ctx);
                 break;
             case 'm':
                 multiplayer(ctx, colors);

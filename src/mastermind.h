@@ -6,6 +6,7 @@
 #define MAX_NUM_COLORS    8
 #define MAX_NUM_SLOTS     10
 #define MAX_NUM_FEEDBACKS 65 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
+#define CONFIG_STRATEGY MM_STRAT_AVERAGE
 
 typedef uint32_t Code_t;
 typedef uint32_t CodeSize_t;
@@ -14,9 +15,8 @@ typedef uint16_t FeedbackSize_t;
 
 typedef enum
 {
-    MM_STRAT_AVERAGE = 0,
-    MM_STRAT_MINMAX,
-    MM_NUM_STRATEGIES
+    MM_STRAT_AVERAGE,
+    MM_STRAT_MINMAX
 } MM_Strategy;
 
 typedef enum
@@ -48,7 +48,7 @@ char mm_get_color_char(MM_Context *ctx, int index);
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation);
 void mm_free_match(MM_Match *match);
 void mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
-Code_t mm_recommend(MM_Match *match, MM_Strategy strategy);
+Code_t mm_recommend(MM_Match *match);
 
 CodeSize_t mm_get_remaining_solutions(MM_Match *match);
 int mm_get_turns(MM_Match *match);

@@ -331,6 +331,7 @@ static void handle_transition(ServerData *data, int pl)
                 data->players[i].match = mm_new_match(data->ctx, false);
             }
             data->curr_solution = rand() % mm_get_num_codes(data->ctx);
+            printf("Round %d/%d started\n", data->curr_round + 1, data->num_rounds);
             printf("Solution: ");
             print_colors(data->ctx, data->curr_solution);
             printf("\n");

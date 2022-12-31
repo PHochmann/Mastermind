@@ -29,10 +29,10 @@ struct MM_Context
 
     // Recommender
     bool lookups_init;
-    Code_t recomm_step1_lookup[MM_NUM_STRATEGIES];
-    bool recomm_step1_init[MM_NUM_STRATEGIES];
-    Code_t recomm_step2_lookup[MM_NUM_STRATEGIES][MAX_NUM_FEEDBACKS];
-    bool recomm_step2_init[MM_NUM_STRATEGIES];
+    Code_t recomm_step1_lookup;
+    bool recomm_step1_init;
+    Code_t recomm_step2_lookup[MAX_NUM_FEEDBACKS];
+    bool recomm_step2_init;
 };
 
 struct MM_Match
@@ -43,6 +43,7 @@ struct MM_Match
     Code_t guesses[MAX_MAX_GUESSES];
 
     bool enable_recommendation;
+    MM_Strategy strategy;
     CodeSize_t num_solutions;
     bool *solution_space; // On heap
 };
@@ -104,24 +105,21 @@ void init_recommendation_lookup(MM_Context *ctx)
      * mm_recommend() decreases a lot for further guesses because of the smaller
      * solution space.
      */
-    for (int strat = 0; strat < MM_NUM_STRATEGIES; strat++)
-    {
-        // 1. recommendation
-        MM_Match *match                 = mm_new_match(ctx, true);
-        ctx->recomm_step1_lookup[strat] = mm_recommend(match, strat);
-        ctx->recomm_step1_init[strat]   = true;
-        mm_free_match(match);
+     // 1. recommendation
+    MM_Match *match                 = mm_new_match(ctx, true);
+    ctx->recomm_step1_lookup = mm_recommend(match);
+    ctx->recomm_step1_init   = true;
+    mm_free_match(match);
 
-        // 2. recommendation
-        for (FeedbackSize_t fb = 0; fb < ctx->num_feedbacks; fb++)
-        {
-            MM_Match *match = mm_new_match(ctx, true);
-            mm_constrain(match, mm_recommend(match, strat), fb);
-            ctx->recomm_step2_lookup[strat][fb] = mm_recommend(match, strat);
-            mm_free_match(match);
-        }
-        ctx->recomm_step2_init[strat] = true;
+    // 2. recommendation
+    for (FeedbackSize_t fb = 0; fb < ctx->num_feedbacks; fb++)
+    {
+        MM_Match *match = mm_new_match(ctx, true);
+        mm_constrain(match, mm_recommend(match), fb);
+        ctx->recomm_step2_lookup[fb] = mm_recommend(match);
+        mm_free_match(match);
     }
+    ctx->recomm_step2_init = true;
 }
 
 void init_lookups(MM_Context *ctx)
@@ -137,7 +135,7 @@ void init_lookups(MM_Context *ctx)
         printf("Initializing data structures for recommendation, this may take a while...\n");
     }
     init_feedback_lookup(ctx);
-    init_recommendation_lookup(ctx);
+    //init_recommendation_lookup(ctx);
 }
 
 /*
@@ -173,7 +171,7 @@ MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const cha
 {
     FeedbackSize_t num_feedbacks = num_slots * (num_slots / 2.0 + 1.5);
 
-    if (num_slots > MAX_NUM_SLOTS || num_colors > MAX_NUM_COLORS || num_feedbacks > MAX_NUM_FEEDBACKS || max_guesses > MAX_MAX_GUESSES)
+    if ((num_slots > MAX_NUM_SLOTS) || (num_colors > MAX_NUM_COLORS) || (num_feedbacks > MAX_NUM_FEEDBACKS) || (max_guesses > MAX_MAX_GUESSES))
     {
         return NULL;
     }
@@ -184,10 +182,8 @@ MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const cha
                                     .num_colors        = num_colors,
                                     .colors            = colors,
                                     .num_feedbacks     = num_feedbacks,
-                                    .num_codes         = pow(num_colors, num_slots),
-                                    .lookups_init      = false,
-                                    .recomm_step1_init = { false },
-                                    .recomm_step2_init = { false } };
+                                    .num_codes         = pow(num_colors, num_slots)
+                    };
 
     FeedbackSize_t counter = 0;
     for (int b = 0; b <= num_slots; b++)
@@ -299,15 +295,15 @@ void mm_free_match(MM_Match *match)
     free(match);
 }
 
-Code_t mm_recommend(MM_Match *match, MM_Strategy strat)
+Code_t mm_recommend(MM_Match *match)
 {
-    if (match->ctx->recomm_step1_init[strat] && match->num_turns == 0)
+    if (match->ctx->recomm_step1_init && (match->num_turns == 0))
     {
-        return match->ctx->recomm_step1_lookup[strat];
+        return match->ctx->recomm_step1_lookup;
     }
-    else if (match->ctx->recomm_step2_init[strat] && match->num_turns == 1)
+    else if (match->ctx->recomm_step2_init && (match->num_turns == 1))
     {
-        return match->ctx->recomm_step2_lookup[strat][match->feedbacks[0]];
+        return match->ctx->recomm_step2_lookup[match->feedbacks[0]];
     }
 
     long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
@@ -336,7 +332,7 @@ Code_t mm_recommend(MM_Match *match, MM_Strategy strat)
                     }
                 }
 
-                switch (strat)
+                switch (CONFIG_STRATEGY)
                 {
                 case MM_STRAT_AVERAGE:
                     aggregations[i] += num_solutions;
