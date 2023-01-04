@@ -165,62 +165,14 @@ void print_feedback(MM_Context *ctx, Feedback_t feedback)
     printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
 }
 
-void print_game_summary_table(int num_players,
-                              char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
-                              int total_points[MAX_NUM_PLAYERS],
-                              int best_points)
-{
-    Table *tbl = get_empty_table();
-    set_span(tbl, num_players, 1);
-    override_horizontal_alignment(tbl, H_ALIGN_CENTER);
-    add_cell(tbl, " Summary of game ");
-    next_row(tbl);
-    set_hline(tbl, BORDER_SINGLE);
-
-    for (int i = 0; i < num_players; i++)
-    {
-        override_horizontal_alignment(tbl, H_ALIGN_CENTER);
-        add_cell_fmt(tbl, " %s ", names[i]);
-    }
-
-    next_row(tbl);
-    set_hline(tbl, BORDER_SINGLE);
-
-    for (int j = 0; j < num_players; j++)
-    {
-        add_cell_fmt(tbl, " %d points ", total_points[j]);
-    }
-
-    next_row(tbl);
-    set_hline(tbl, BORDER_SINGLE);
-
-    for (int j = 0; j < num_players; j++)
-    {
-        override_horizontal_alignment(tbl, H_ALIGN_CENTER);
-        if (total_points[j] == best_points)
-        {
-            add_cell(tbl, " WINNER! ");
-        }
-        else
-        {
-            add_empty_cell(tbl);
-        }
-    }
-
-    next_row(tbl);
-    set_all_vlines(tbl, BORDER_SINGLE);
-    make_boxed(tbl, BORDER_SINGLE);
-    print_table(tbl);
-    free_table(tbl);
-}
-
 void print_round_summary_table(MM_Context *ctx,
                                int num_players,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
                                Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-                               Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
-                               int round)
+                               Code_t solution,
+                               int round,
+                               int points[MAX_NUM_PLAYERS])
 {
     int max_turns = 0;
     for (int i = 0; i < num_players; i++)
@@ -256,7 +208,7 @@ void print_round_summary_table(MM_Context *ctx,
             {
                 add_cell_gc(tbl, get_colors_string(ctx, guesses[j][i]));
                 int b, w;
-                mm_code_to_feedback(ctx, feedbacks[j][i], &b, &w);
+                mm_code_to_feedback(ctx, mm_get_feedback(ctx, guesses[j][i], solution), &b, &w);
                 add_cell_fmt(tbl, " %d ", b);
                 add_cell_fmt(tbl, " %d ", w);
             }
@@ -273,7 +225,7 @@ void print_round_summary_table(MM_Context *ctx,
     for (int i = 0; i < num_players; i++)
     {
         set_span(tbl, 3, 1);
-        add_cell_fmt(tbl, " %d turns", turns[i]);
+        add_cell_fmt(tbl, " %d points total ", points[i]);
     }
     next_row(tbl);
 

@@ -235,8 +235,6 @@ const char *plstate_to_str(PlayerState state)
         return "FINISHED";
     case PLAYER_STATE_ABORTED:
         return "ABORTED";
-    case PLAYER_STATE_TIMEOUT:
-        return "TIMEOUT";
     case PLAYER_STATE_DISCONNECTED:
         return "DISCONNECTED";
     default:

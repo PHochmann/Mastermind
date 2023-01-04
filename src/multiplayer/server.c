@@ -27,6 +27,7 @@ typedef struct
     char name[MAX_PLAYER_NAME_BYTES];
     MM_Match *match;
     int points;
+    int position;
 } Player;
 
 typedef struct
@@ -51,11 +52,7 @@ static const Transition allowed_recv_transitions[] = {
     // Error and timeout:
     { PLAYER_STATE_CHOOSING_NAME, PLAYER_STATE_ABORTED },
     { PLAYER_STATE_NOT_ACKED, PLAYER_STATE_ABORTED },
-    { PLAYER_STATE_GUESSING, PLAYER_STATE_ABORTED },
-    { PLAYER_STATE_NONE, PLAYER_STATE_TIMEOUT },
-    { PLAYER_STATE_CHOOSING_NAME, PLAYER_STATE_TIMEOUT },
-    { PLAYER_STATE_NOT_ACKED, PLAYER_STATE_TIMEOUT },
-    { PLAYER_STATE_GUESSING, PLAYER_STATE_TIMEOUT }
+    { PLAYER_STATE_GUESSING, PLAYER_STATE_ABORTED }
 };
 
 static const int num_allowed_recv_transitions = sizeof(allowed_recv_transitions) / sizeof(Transition);
@@ -167,39 +164,18 @@ static int get_next_transition(ServerData *data, PlayerState *out_state)
         FD_SET(data->listening_socket, &clients);
     }
 
-    /* DEACTIVATED CODE: TIMEOUT LOGIC
-    todo: &clients must be reset every iteration
-    struct timeval timeout = { 0, 10 };
-    int sel = 0;
-    while (sel == 0)
-    */
     select(FD_SETSIZE, &clients, NULL, NULL, NULL);
     if (sigpipe || sigint)
     {
         return -1;
     }
-    /*}
-    if (sel == 0)
-    {
-        for (int i = 0; i < data->num_players; i++)
-        {
-            if (data->players[i].state == PLAYER_STATE_NONE
-                || data->players[i].state == PLAYER_STATE_CHOOSING_NAME
-                || data->players[i].state == PLAYER_STATE_NOT_ACKED
-                || data->players[i].state == PLAYER_STATE_GUESSING)
-            {
-                *out_state = PLAYER_STATE_TIMEOUT;
-                return i;
-            }
-        }
-    }*/
 
     if (data->listening_socket != -1)
     {
         if (FD_ISSET(data->listening_socket, &clients))
         {
             int new_id = 0;
-            while (data->players[new_id].state != PLAYER_STATE_NONE && new_id < data->num_players)
+            while ((data->players[new_id].state != PLAYER_STATE_NONE) && (new_id < data->num_players))
             {
                 new_id++;
             }
@@ -210,10 +186,8 @@ static int get_next_transition(ServerData *data, PlayerState *out_state)
             inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, client_ip, INET_ADDRSTRLEN * sizeof(char));
             printf("Accepted client %s (%d/%d)\n", client_ip, new_id + 1, data->num_players);
             *out_state = PLAYER_STATE_CONNECTED;
-
-            if (new_id + 1 == data->num_players)
+            if ((new_id + 1) == data->num_players)
             {
-                printf("All players connected.\n");
                 close(data->listening_socket);
                 data->listening_socket = -1;
             }
@@ -236,7 +210,7 @@ static int get_next_transition(ServerData *data, PlayerState *out_state)
     return -1;
 }
 
-static bool is_all(ServerData *data, PlayerState state)
+static int count_states(ServerData *data, PlayerState state)
 {
     int res = 0;
     for (int i = 0; i < data->num_players; i++)
@@ -246,7 +220,13 @@ static bool is_all(ServerData *data, PlayerState state)
             res++;
         }
     }
-    return (res == data->num_players);
+    return res;
+}
+
+static bool is_all(ServerData *data, PlayerState state)
+{
+
+    return (count_states(data, state) == data->num_players);
 }
 
 static void send_transition_broadcast(ServerData *data, PlayerState state)
@@ -324,16 +304,16 @@ static void handle_transition(ServerData *data, int pl)
     }
     else if (player->state == PLAYER_STATE_ACKED)
     {
+        printf("%s ACKed (%d/%d)\n", player->name, count_states(data, PLAYER_STATE_ACKED), data->num_players);
+
         if (is_all(data, PLAYER_STATE_ACKED)) // Start round
         {
             for (int i = 0; i < data->num_players; i++)
             {
-                data->players[i].match = mm_new_match(data->ctx, false);
+                data->players[i].match  = mm_new_match(data->ctx, false);
+                data->players->position = INT16_MAX;
             }
             data->curr_solution = rand() % mm_get_num_codes(data->ctx);
-            printf("Solution: ");
-            print_colors(data->ctx, data->curr_solution);
-            printf("\n");
             send_transition_broadcast(data, PLAYER_STATE_GUESSING);
             if (data->curr_round == 0)
             {
@@ -345,6 +325,10 @@ static void handle_transition(ServerData *data, int pl)
                 send_broadcast(data, &all_names, sizeof(AllNicknamesPackage_R));
             }
             data->curr_round++;
+            printf("Start of round %d of %d\n", data->curr_round, data->num_rounds);
+            printf("Solution: ");
+            print_colors(data->ctx, data->curr_solution);
+            printf("\n");
         }
         else
         {
@@ -386,6 +370,7 @@ static void handle_transition(ServerData *data, int pl)
             break;
         case MM_MATCH_WON:
             send_transition(player, PLAYER_STATE_FINISHED);
+            player->position = count_states(data, PLAYER_STATE_FINISHED);
             break;
         case MM_MATCH_LOST:
             send_transition(player, PLAYER_STATE_FINISHED);
@@ -395,40 +380,58 @@ static void handle_transition(ServerData *data, int pl)
 
         if (player->state == PLAYER_STATE_FINISHED)
         {
-            printf("%s ended in %d turns\n", player->name, mm_get_turns(player->match));
+            printf("%s ended in %d turns (%d/%d)\n",
+                   player->name,
+                   mm_get_turns(player->match),
+                   count_states(data, PLAYER_STATE_FINISHED),
+                   data->num_players);
         }
 
         if (is_all(data, PLAYER_STATE_FINISHED)) // End round
         {
-            printf("Round ended\n");
             RoundEndPackage_R summary = { 0 };
-            int min_turns             = INT16_MAX;
-
+            summary.solution          = data->curr_solution;
+            int winner_pl             = -1;
             for (int i = 0; i < data->num_players; i++)
             {
                 summary.num_turns[i] = mm_get_turns(data->players[i].match);
-                if (summary.num_turns[i] < min_turns)
-                {
-                    min_turns = summary.num_turns[i];
-                }
-            }
-
-            for (int i = 0; i < data->num_players; i++)
-            {
+                summary.points[i]    = data->players[i].points;
                 for (int j = 0; j < summary.num_turns[i]; j++)
                 {
-                    summary.guesses[i][j]   = mm_get_history_guess(data->players[i].match, j);
-                    summary.feedbacks[i][j] = mm_get_history_feedback(data->players[i].match, j);
+                    summary.guesses[i][j] = mm_get_history_guess(data->players[i].match, j);
                 }
-                if ((summary.num_turns[i] == min_turns) && (mm_get_state(data->players[i].match) == MM_MATCH_WON))
+
+                if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
                 {
-                    data->players[i].points++;
-                    summary.points[i] = data->players[i].points;
+                    if ((summary.num_turns[i] < summary.num_turns[winner_pl])
+                        || ((summary.num_turns[i] == summary.num_turns[winner_pl])
+                            && (data->players[i].position < data->players[winner_pl].position))
+                        || (winner_pl == -1))
+                    {
+                        if ((winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[winner_pl]))
+                        {
+                            summary.win_reason_quicker = true;
+                        }
+                        else
+                        {
+                            summary.win_reason_quicker = false;
+                        }
+                        winner_pl = i;
+                    }
                 }
+
                 mm_free_match(data->players[i].match);
             }
+
+            printf("Round ended. %s won.\n", (winner_pl != -1) ? data->players[winner_pl].name : "Nobody");
+
+            summary.winner_pl = winner_pl;
+            summary.points[winner_pl]++;
+            data->players[winner_pl].points++;
+
             send_transition_broadcast(data, PLAYER_STATE_NOT_ACKED);
             send_broadcast(data, &summary, sizeof(RoundEndPackage_R));
+
             if (data->curr_round == data->num_rounds)
             {
                 send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
@@ -439,22 +442,6 @@ static void handle_transition(ServerData *data, int pl)
     {
         printf("Game aborted by %s\n", player->name);
         send_transition_broadcast(data, PLAYER_STATE_ABORTED);
-        send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
-    }
-    else if (player->state == PLAYER_STATE_TIMEOUT)
-    {
-        if (player->previous_state == PLAYER_STATE_NONE)
-        {
-            printf("Waited too long for all players to connect.\n");
-            player->state = PLAYER_STATE_DISCONNECTED;
-        }
-        else
-        {
-            printf("Timeout of player %s (index: %d)\n", player->name, (int)(data->players - player));
-            send_transition_broadcast(data, PLAYER_STATE_TIMEOUT);
-        }
-        send_transition_broadcast(data, PLAYER_STATE_ABORTED);
-        send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
     }
 }
 
@@ -464,15 +451,13 @@ static bool process_next_transition(ServerData *data)
     int pl = get_next_transition(data, &next_state);
     if (pl == -1)
     {
-        send_transition_broadcast(data, PLAYER_STATE_ABORTED);
-        send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
         return false;
     }
     bool legal_transition = false;
     for (int i = 0; i < num_allowed_recv_transitions; i++)
     {
-        if (allowed_recv_transitions[i].from == data->players[pl].state
-            && allowed_recv_transitions[i].to == next_state)
+        if ((allowed_recv_transitions[i].from == data->players[pl].state)
+            && (allowed_recv_transitions[i].to == next_state))
         {
             legal_transition = true;
             break;
@@ -488,8 +473,6 @@ static bool process_next_transition(ServerData *data)
     else
     {
         printf("Illegal transition received: %s -> %s.\n", plstate_to_str(data->players[pl].state), plstate_to_str(next_state));
-        send_transition_broadcast(data, PLAYER_STATE_ABORTED);
-        send_transition_broadcast(data, PLAYER_STATE_DISCONNECTED);
         return false;
     }
     return true;
@@ -534,6 +517,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     {
         if (!process_next_transition(&data))
         {
+            send_transition_broadcast(&data, PLAYER_STATE_ABORTED);
             break;
         }
     }

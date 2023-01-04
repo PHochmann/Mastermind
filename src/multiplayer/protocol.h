@@ -1,14 +1,14 @@
 #pragma once
 #include "../mastermind.h"
 
-//#define DEBUG_TRANSITION_LOG
+// #define DEBUG_TRANSITION_LOG
 #define MAX_NUM_PLAYERS       4
 #define MAX_PLAYER_NAME_BYTES 31 // Including \0
 #define MAX_NUM_ROUNDS        10
 
 typedef enum
 {
-    PLAYER_STATE_NONE = 0,
+    PLAYER_STATE_NONE,
     PLAYER_STATE_CONNECTED,
     PLAYER_STATE_RULES_RECEIVED,
     PLAYER_STATE_CHOOSING_NAME,
@@ -20,7 +20,6 @@ typedef enum
     PLAYER_STATE_GOT_FEEDBACK,
     PLAYER_STATE_FINISHED,
     PLAYER_STATE_ABORTED,
-    PLAYER_STATE_TIMEOUT,
     PLAYER_STATE_DISCONNECTED,
 } PlayerState;
 
@@ -73,8 +72,10 @@ typedef struct
 
 typedef struct
 {
+    int winner_pl;
+    bool win_reason_quicker;
     int points[MAX_NUM_PLAYERS];
     int num_turns[MAX_NUM_PLAYERS];
-    Feedback_t feedbacks[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
     Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
+    Code_t solution;
 } RoundEndPackage_R;

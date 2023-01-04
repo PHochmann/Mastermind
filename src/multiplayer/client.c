@@ -28,6 +28,7 @@ typedef struct
     int curr_turn;
     AllNicknamesPackage_R names;
     RulesPackage_R rules;
+    bool ended_gracefully;
 } ClientData;
 
 static const Transition allowed_recv_transitions[] = {
@@ -65,7 +66,6 @@ static bool receive(int socket, void *buffer, size_t length)
 {
     if ((recv(socket, buffer, length, MSG_WAITALL) < (ssize_t)length) || sigpipe)
     {
-        printf("recv false\n");
         return false;
     }
     return true;
@@ -155,7 +155,9 @@ static bool receive_transition(ClientData *data)
             break;
         }
     }
-    if (legal_transition || (data->state == PLAYER_STATE_ABORTED) || (data->state == PLAYER_STATE_TIMEOUT))
+    if (legal_transition
+        || (response.state == PLAYER_STATE_ABORTED)
+        || (response.state == PLAYER_STATE_DISCONNECTED))
     {
         data->previous_state = data->state;
         data->state          = response.state;
@@ -182,7 +184,7 @@ static bool abort_game(ClientData *data)
 {
     while (true)
     {
-        char *input = readline("Do you want to abort the game (yN)? ");
+        char *input = readline("Do you want to abort the game? [yN] ");
         clear_input();
         if (input == NULL)
         {
@@ -272,7 +274,19 @@ static void handle_transition(ClientData *data)
             receive(data->socket, &summary, sizeof(RoundEndPackage_R));
             print_round_summary_table(data->ctx, data->rules.num_players, data->names.players,
                                       summary.num_turns, summary.guesses,
-                                      summary.feedbacks, data->curr_round);
+                                      summary.solution, data->curr_round, summary.points);
+
+            if (summary.winner_pl != -1)
+            {
+                printf("%s won this round%s.\n",
+                       (summary.winner_pl == data->rules.player_id) ? "You" : data->names.players[summary.winner_pl],
+                       (summary.win_reason_quicker ? " due to finishing the first" : ""));
+            }
+            else
+            {
+                printf("Nobody won this round.\n");
+            }
+
             if (data->curr_round == data->rules.num_rounds)
             {
                 int best_points = 0;
@@ -283,7 +297,41 @@ static void handle_transition(ClientData *data)
                         best_points = summary.points[i];
                     }
                 }
-                print_game_summary_table(data->rules.num_players, data->names.players, summary.points, best_points);
+
+                int num_winners = 0;
+                for (int i = 0; i < data->rules.num_players; i++)
+                {
+                    if (summary.points[i] == best_points)
+                    {
+                        num_winners++;
+                    }
+                }
+
+                printf("\n~ ~ End of game ~ ~\n");
+                if (num_winners != 1)
+                {
+                    printf("It's a draw between ");
+                    for (int i = 0; i < data->rules.num_players; i++)
+                    {
+                        if (summary.points[i] == best_points)
+                        {
+                            printf("%s, ", data->names.players[i]);
+                        }
+                    }
+                    printf("\n");
+                }
+                else
+                {
+                    for (int i = 0; i < data->rules.num_players; i++)
+                    {
+                        if (summary.points[i] == best_points)
+                        {
+                            printf("%s won!\n",
+                                   (summary.winner_pl == data->rules.player_id) ? "You" : data->names.players[summary.winner_pl]);
+                        }
+                    }
+                }
+                data->ended_gracefully = true;
                 return;
             }
         }
@@ -372,13 +420,12 @@ static void handle_transition(ClientData *data)
     {
         printf("Game aborted.\n");
     }
-    else if (data->state == PLAYER_STATE_TIMEOUT)
-    {
-        printf("Timeout!\n");
-    }
     else if (data->state == PLAYER_STATE_DISCONNECTED)
     {
-        printf("Disconnected from server. Bye!\n");
+        if (!data->ended_gracefully)
+        {
+            printf("Server closed connection unexpectedly.\n");
+        }
     }
 }
 
