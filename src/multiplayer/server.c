@@ -48,8 +48,7 @@ static const Transition allowed_recv_transitions[] = {
     { PLAYER_STATE_CHOOSING_NAME, PLAYER_STATE_SENT_NAME },
     { PLAYER_STATE_NOT_ACKED, PLAYER_STATE_ACKED },
     { PLAYER_STATE_GUESSING, PLAYER_STATE_AWAITING_FEEDBACK },
-
-    // Error and timeout:
+    // Errors:
     { PLAYER_STATE_CHOOSING_NAME, PLAYER_STATE_ABORTED },
     { PLAYER_STATE_NOT_ACKED, PLAYER_STATE_ABORTED },
     { PLAYER_STATE_GUESSING, PLAYER_STATE_ABORTED }
@@ -408,15 +407,16 @@ static void handle_transition(ServerData *data, int pl)
                             && (data->players[i].position < data->players[winner_pl].position))
                         || (winner_pl == -1))
                     {
-                        if ((winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[winner_pl]))
-                        {
-                            summary.win_reason_quicker = true;
-                        }
-                        else
-                        {
-                            summary.win_reason_quicker = false;
-                        }
                         winner_pl = i;
+                    }
+
+                    if ((winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[winner_pl]))
+                    {
+                        summary.win_reason_quicker = true;
+                    }
+                    else
+                    {
+                        summary.win_reason_quicker = false;
                     }
                 }
 
