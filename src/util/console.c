@@ -88,13 +88,13 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
     strb_append(&pb, "%d/%d colors [", turn, mm_get_max_guesses(ctx));
     for (int i = 0; i < mm_get_num_colors(ctx); i++)
     {
-        strb_append(&pb, "%c", mm_get_color_char(ctx, i));
+        strb_append(&pb, "%c", to_lower(*first_char(mm_get_color_string(ctx, i))));
     }
     strb_append(&pb, "]*%d: ", mm_get_num_slots(ctx));
 
     bool validated = false;
     char *input    = NULL;
-    int colors[MAX_NUM_COLORS];
+    int colors[MAX_NUM_SLOTS];
 
     while (!validated)
     {
@@ -113,7 +113,7 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
                 colors[i] = UINT8_MAX;
                 for (int j = 0; j < mm_get_num_colors(ctx); j++)
                 {
-                    if (mm_get_color_char(ctx, j) == to_lower(input[i]))
+                    if (to_lower(*first_char(mm_get_color_string(ctx, j))) == to_lower(input[i]))
                     {
                         colors[i] = j;
                         break;
@@ -153,7 +153,7 @@ char *get_colors_string(MM_Context *ctx, Code_t input)
     strb_append(&builder, " ");
     for (int i = 0; i < mm_get_num_slots(ctx); i++)
     {
-        strb_append(&builder, "%s  ", mm_get_color(ctx, mm_get_color_at_pos(mm_get_num_colors(ctx), input, i)));
+        strb_append(&builder, "%s  ", mm_get_color_string(ctx, mm_get_color_at_pos(mm_get_num_colors(ctx), input, i)));
     }
     return strb_to_str(&builder);
 }

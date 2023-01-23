@@ -402,14 +402,6 @@ static void handle_transition(ServerData *data, int pl)
 
                 if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
                 {
-                    if ((summary.num_turns[i] < summary.num_turns[winner_pl])
-                        || ((summary.num_turns[i] == summary.num_turns[winner_pl])
-                            && (data->players[i].position < data->players[winner_pl].position))
-                        || (winner_pl == -1))
-                    {
-                        winner_pl = i;
-                    }
-
                     if ((winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[winner_pl]))
                     {
                         summary.win_reason_quicker = true;
@@ -417,6 +409,14 @@ static void handle_transition(ServerData *data, int pl)
                     else
                     {
                         summary.win_reason_quicker = false;
+                    }
+
+                    if ((summary.num_turns[i] < summary.num_turns[winner_pl])
+                        || ((summary.num_turns[i] == summary.num_turns[winner_pl])
+                            && (data->players[i].position < data->players[winner_pl].position))
+                        || (winner_pl == -1))
+                    {
+                        winner_pl = i;
                     }
                 }
 

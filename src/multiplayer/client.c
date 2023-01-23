@@ -280,7 +280,7 @@ static void handle_transition(ClientData *data)
             {
                 printf("%s won this round%s.\n",
                        (summary.winner_pl == data->rules.player_id) ? "You" : data->names.players[summary.winner_pl],
-                       (summary.win_reason_quicker ? " due to finishing the first" : ""));
+                       (summary.win_reason_quicker ? " due to finishing first" : ""));
             }
             else
             {

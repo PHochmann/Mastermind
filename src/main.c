@@ -175,13 +175,12 @@ static void singleplayer(MM_Context *ctx)
 
 int main()
 {
-    printf("Mastermind v1.0.0 (c) 2022 Philipp Hochmann\n");
     srand(time(NULL));
 
-    const char *const colors[] = { ORN "Orange" RST, RED " Red  " RST,
-                                   YEL "Yellow" RST, BLU " Blue " RST,
-                                   CYN " Cyan " RST, GRN "Green " RST,
-                                   DRG "DGreen" RST, PIN "Pink " RST };
+    const char *const colors[MAX_NUM_COLORS] = { ORN "Orange" RST, RED " Red  " RST,
+                                                 YEL "Yellow" RST, BLU " Blue " RST,
+                                                 CYN " Cyan " RST, GRN "Green " RST,
+                                                 DRG "DGreen" RST, PIN "Pink " RST };
 
     MM_Context *ctx = mm_new_ctx(10, 4, 6, colors);
 
@@ -212,6 +211,7 @@ int main()
                 options(&ctx, colors);
                 break;
             case 'e':
+                printf("Mastermind v1.0.1 (c) 2022 Justine B. Geuenich, Philipp Hochmann\n");
                 exit = true;
                 break;
             }

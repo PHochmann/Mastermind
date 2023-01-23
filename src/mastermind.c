@@ -19,7 +19,6 @@ struct MM_Context
     FeedbackSize_t num_feedbacks;
     CodeSize_t num_codes;
     const char *const *colors;
-    char color_chars[MAX_NUM_COLORS];
     Feedback_t feedback_encode[MAX_NUM_SLOTS + 1][MAX_NUM_SLOTS + 1];
     uint16_t feedback_decode[MAX_NUM_FEEDBACKS];
 
@@ -105,8 +104,8 @@ void init_recommendation_lookup(MM_Context *ctx)
      * mm_recommend() decreases a lot for further guesses because of the smaller
      * solution space.
      */
-     // 1. recommendation
-    MM_Match *match                 = mm_new_match(ctx, true);
+    // 1. recommendation
+    MM_Match *match          = mm_new_match(ctx, true);
     ctx->recomm_step1_lookup = mm_recommend(match);
     ctx->recomm_step1_init   = true;
     mm_free_match(match);
@@ -135,7 +134,7 @@ void init_lookups(MM_Context *ctx)
         printf("Initializing data structures for recommendation, this may take a while...\n");
     }
     init_feedback_lookup(ctx);
-    //init_recommendation_lookup(ctx);
+    init_recommendation_lookup(ctx);
 }
 
 /*
@@ -177,13 +176,12 @@ MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const cha
     }
 
     MM_Context *ctx = malloc(sizeof(MM_Context));
-    *ctx            = (MM_Context){ .max_guesses       = max_guesses,
-                                    .num_slots         = num_slots,
-                                    .num_colors        = num_colors,
-                                    .colors            = colors,
-                                    .num_feedbacks     = num_feedbacks,
-                                    .num_codes         = pow(num_colors, num_slots)
-                    };
+    *ctx            = (MM_Context){ .max_guesses   = max_guesses,
+                                    .num_slots     = num_slots,
+                                    .num_colors    = num_colors,
+                                    .colors        = colors,
+                                    .num_feedbacks = num_feedbacks,
+                                    .num_codes     = pow(num_colors, num_slots) };
 
     FeedbackSize_t counter = 0;
     for (int b = 0; b <= num_slots; b++)
@@ -197,11 +195,6 @@ MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const cha
                 counter++;
             }
         }
-    }
-
-    for (int i = 0; i < num_colors; i++)
-    {
-        ctx->color_chars[i] = to_lower(*first_char(colors[i]));
     }
 
     return ctx;
@@ -279,14 +272,9 @@ int mm_get_num_colors(MM_Context *ctx)
     return ctx->num_colors;
 }
 
-const char *mm_get_color(MM_Context *ctx, int index)
+const char *mm_get_color_string(MM_Context *ctx, int index)
 {
     return ctx->colors[index];
-}
-
-char mm_get_color_char(MM_Context *ctx, int index)
-{
-    return ctx->color_chars[index];
 }
 
 void mm_free_match(MM_Match *match)
