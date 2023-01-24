@@ -390,7 +390,7 @@ static void handle_transition(ServerData *data, int pl)
         {
             RoundEndPackage_R summary = { 0 };
             summary.solution          = data->curr_solution;
-            int winner_pl             = -1;
+            summary.winner_pl         = -1;
             for (int i = 0; i < data->num_players; i++)
             {
                 summary.num_turns[i] = mm_get_turns(data->players[i].match);
@@ -402,7 +402,7 @@ static void handle_transition(ServerData *data, int pl)
 
                 if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
                 {
-                    if ((winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[winner_pl]))
+                    if ((summary.winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[summary.winner_pl]))
                     {
                         summary.win_reason_quicker = true;
                     }
@@ -411,23 +411,28 @@ static void handle_transition(ServerData *data, int pl)
                         summary.win_reason_quicker = false;
                     }
 
-                    if ((summary.num_turns[i] < summary.num_turns[winner_pl])
-                        || ((summary.num_turns[i] == summary.num_turns[winner_pl])
-                            && (data->players[i].position < data->players[winner_pl].position))
-                        || (winner_pl == -1))
+                    if ((summary.num_turns[i] < summary.num_turns[summary.winner_pl])
+                        || ((summary.num_turns[i] == summary.num_turns[summary.winner_pl])
+                            && (data->players[i].position < data->players[summary.winner_pl].position))
+                        || (summary.winner_pl == -1))
                     {
-                        winner_pl = i;
+                        summary.winner_pl = i;
                     }
                 }
 
                 mm_free_match(data->players[i].match);
             }
 
-            printf("Round ended. %s won.\n", (winner_pl != -1) ? data->players[winner_pl].name : "Nobody");
-
-            summary.winner_pl = winner_pl;
-            summary.points[winner_pl]++;
-            data->players[winner_pl].points++;
+            if (summary.winner_pl != -1)
+            {
+                summary.points[summary.winner_pl]++;
+                data->players[summary.winner_pl].points++;
+                printf("Round ended. %s won.\n", data->players[summary.winner_pl].name);
+            }
+            else
+            {
+                printf("Round ended. Nobody won.\n");
+            }
 
             send_transition_broadcast(data, PLAYER_STATE_NOT_ACKED);
             send_broadcast(data, &summary, sizeof(RoundEndPackage_R));
@@ -451,6 +456,7 @@ static bool process_next_transition(ServerData *data)
     int pl = get_next_transition(data, &next_state);
     if (pl == -1)
     {
+        printf("REcv failed\n");
         return false;
     }
     bool legal_transition = false;

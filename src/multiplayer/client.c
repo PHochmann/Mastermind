@@ -395,13 +395,13 @@ static void handle_transition(ClientData *data)
         switch (feedback.match_state)
         {
         case MM_MATCH_LOST:
-            printf("~ ~ Game Over! ~ ~\n");
+            printf("~ ~ Game Over! You did not make it in %d turns. ~ ~\n", data->rules.max_guesses);
             printf("~ ~ Solution: ");
             print_colors(data->ctx, feedback.solution);
             printf(" ~ ~\n");
             break;
         case MM_MATCH_WON:
-            printf("~ ~ You guessed right! ~ ~\n");
+            printf("~ ~ You guessed right! You took %d turns. ~ ~\n", data->curr_turn);
             break;
         case MM_MATCH_PENDING:
             break;
