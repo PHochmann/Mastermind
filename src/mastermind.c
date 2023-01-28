@@ -155,7 +155,6 @@ MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation)
 
     if (enable_recommendation)
     {
-        init_lookups(ctx);
         result->num_solutions  = ctx->num_codes;
         result->solution_space = malloc(ctx->num_codes * sizeof(bool));
         for (CodeSize_t i = 0; i < ctx->num_codes; i++)
@@ -285,6 +284,7 @@ void mm_free_match(MM_Match *match)
 
 Code_t mm_recommend(MM_Match *match)
 {
+    init_lookups(match->ctx);
     if (match->ctx->recomm_step1_init && (match->num_turns == 0))
     {
         return match->ctx->recomm_step1_lookup;

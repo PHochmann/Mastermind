@@ -30,7 +30,7 @@
 static MM_Match *play_game(MM_Context *ctx, Code_t solution)
 {
     Feedback_t feedback = 0;
-    MM_Match *match     = mm_new_match(ctx, false);
+    MM_Match *match     = mm_new_match(ctx, true);
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
         Code_t input;
@@ -44,6 +44,10 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
         feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_feedback(ctx, feedback);
+        if (mm_get_remaining_solutions(match) == 1)
+        {
+            printf(" *");
+        }
         printf("\n");
     }
     if (mm_get_state(match) == MM_MATCH_WON)
