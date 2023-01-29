@@ -29,7 +29,7 @@ typedef enum
 typedef struct MM_Context MM_Context;
 typedef struct MM_Match MM_Match;
 
-MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors, const char *const *colors);
+MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors);
 void mm_free_ctx(MM_Context *ctx);
 Feedback_t mm_get_feedback(MM_Context *ctx, Code_t a, Code_t b);
 void mm_code_to_feedback(MM_Context *ctx, Feedback_t fb_code, int *b, int *w);
@@ -42,7 +42,6 @@ int mm_get_max_guesses(MM_Context *ctx);
 CodeSize_t mm_get_num_codes(MM_Context *ctx);
 int mm_get_num_colors(MM_Context *ctx);
 int mm_get_num_slots(MM_Context *ctx);
-const char *mm_get_color_string(MM_Context *ctx, int index);
 
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation);
 void mm_free_match(MM_Match *match);
