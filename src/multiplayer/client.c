@@ -328,7 +328,7 @@ static void handle_transition(ClientData *data)
                             if (summary.points[i] == best_points)
                             {
                                 printf("%s won!\n",
-                                    (summary.winner_pl == data->rules.player_id) ? "You" : data->names.players[summary.winner_pl]);
+                                    (i == data->rules.player_id) ? "You" : data->names.players[i]);
                             }
                         }
                     }

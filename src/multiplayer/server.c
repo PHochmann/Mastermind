@@ -17,8 +17,6 @@
 #include "protocol.h"
 #include "server.h"
 
-#define TIMEOUT_SECONDS 1000
-
 typedef struct
 {
     PlayerState previous_state;
@@ -457,7 +455,6 @@ static bool process_next_transition(ServerData *data)
     int pl = get_next_transition(data, &next_state);
     if (pl == -1)
     {
-        printf("REcv failed\n");
         return false;
     }
     bool legal_transition = false;
