@@ -19,24 +19,20 @@ typedef struct
 } Color;
 
 static const Color colors[] = {
-    { "Orange", "\033[38:2:255:165:000m"},
-    { " Red  ", "\033[38:2:255:000:000m" },
-    { "Yellow", "\033[38:2:250:237:000m" },
-    { " Blue ", "\033[38:2:000:000:255m" },
-    { " Cyan ", "\033[38:2:065:253:254m" },
-    { "Green ", "\033[38:2:000:255:000m" },
-    { "DrkGrn", "\033[38:2:085:107:047m" },
-    { "Pink  ", "\033[38:2:219:112:147m" },
+    { "Orange", "\033[38;5;166m"},
+    { " Red  ", "\033[38;5;9m" },
+    { "Yellow", "\033[38;5;11m" },
+    { " Blue ", "\033[38;5;12m" },
+    { " Cyan ", "\033[38;5;14m" },
+    { "Green ", "\033[38;5;10m" },
+    { "DrkGrn", "\033[38;5;2m" },
+    { "Pink  ", "\033[38;5;13m" },
 };
 
-#define FANCY_FEEDBACK 1
-
-#define GRE    "\033[38:2:100:100:100m"
-#define GRE_BG "\033[48:2:100:100:100m"
-#define BLK    "\033[38:2:000:000:000m"
-#define WHT    "\033[38:2:255:255:255m"
-#define BLK_BG "\033[48:2:000:000:000m"
-#define WHT_BG "\033[48:2:255:255:255m"
+#define BLK    "\033[38;5;0m"
+#define WHT    "\033[38;5;15m"
+#define BLK_BG "\033[48;5;0m"
+#define WHT_BG "\033[48;5;15m"
 #define RST    "\033[0m"
 
 // Static functions
@@ -203,27 +199,20 @@ void print_feedback(MM_Context *ctx, Feedback_t feedback)
 {
     int b, w;
     mm_code_to_feedback(ctx, feedback, &b, &w);
-    if (FANCY_FEEDBACK)
+    printf(BLK_BG WHT);
+    for (int i = 0; i < b; i++)
     {
-        printf(BLK_BG WHT);
-        for (int i = 0; i < b; i++)
-        {
-            printf(" X ");
-        }
-        printf(WHT_BG BLK);
-        for (int i = 0; i < w; i++)
-        {
-            printf(" x ");
-        }
-        printf(RST);
-        for (int i = 0; i < mm_get_num_slots(ctx) - b - w; i++)
-        {
-            printf(" . ");
-        }
+        printf(" X ");
     }
-    else
+    printf(WHT_BG BLK);
+    for (int i = 0; i < w; i++)
     {
-        printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars   
+        printf(" x ");
+    }
+    printf(RST);
+    for (int i = 0; i < mm_get_num_slots(ctx) - b - w; i++)
+    {
+        printf(" . ");
     }
 }
 
