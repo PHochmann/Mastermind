@@ -47,12 +47,12 @@ struct Row
 
 struct Table
 {
+    bool alternative_style;                        // True when alternative border styles should be used
     size_t num_cols;                               // Number of columns (max. of num_cells over all rows)
     size_t num_rows;                               // Number of rows (length of linked list)
     struct Row *first_row;                         // Start of linked list to rows
     struct Row *curr_row;                          // Marker of row of next inserted cell
     size_t curr_col;                               // Marker of col of next inserted cell
-    char *title;                                   // Title of table
     TableBorderStyle borders_left[TABLE_MAX_COLS]; // Default left border of cols
     TableHAlign h_aligns[TABLE_MAX_COLS];          // Default horizontal alignment of cols
     TableVAlign v_aligns[TABLE_MAX_COLS];          // Default vertical alignment of cols
@@ -67,41 +67,42 @@ struct Constraint
     size_t min;        // Needed size (i.e. minimum size needed)
 };
 
-static char *BORDER_MATRIX_SINGLE[] = {
-    "┌",
-    "┬",
-    "┐",
-    "├",
-    "┼",
-    "┤",
-    "└",
-    "┴",
-    "┘",
-    "─",
-    "│",
-    " ",
-};
-
-static char *BORDER_MATRIX_DOUBLE[] = {
-    "╔",
-    "╦",
-    "╗",
-    "╠",
-    "╬",
-    "╣",
-    "╚",
-    "╩",
-    "╝",
-    "═",
-    "║",
-    " ",
-};
-
 static size_t HLINE_INDEX = 9;
 static size_t VLINE_INDEX = 10;
 
 // Index encodes whether a border intersects (0: no intersection, 1: intersection), clockwise
 static size_t BORDER_LOOKUP[16] = { 11, 11, 11, 6, 11, 10, 0, 3, 11, 8, 9, 7, 2, 5, 1, 4 };
+
+static char *get_border(int index, TableBorderStyle style, bool alternative)
+{
+    static char *BORDER_MATRIX_SINGLE[] = {
+        "┌", "┬", "┐", "├", "┼", "┤", "└", "┴", "┘", "─", "│", " "
+    };
+
+    static char *BORDER_MATRIX_DOUBLE[] = {
+        "╔", "╦", "╗", "╠", "╬", "╣", "╚", "╩", "╝", "═", "║", " "
+    };
+
+    static char *BORDER_MATRIX_ALTERNATIVE[] = {
+        "+", "+", "+", "+", "+", "+", "+", "+", "+", "-", "|", " "
+    };
+
+    if (alternative)
+    {
+        return BORDER_MATRIX_ALTERNATIVE[index];
+    }
+    else
+    {
+        if (style == TBL_BORDER_SINGLE)
+        {
+            return BORDER_MATRIX_SINGLE[index];
+        }
+        else
+        {
+            return BORDER_MATRIX_DOUBLE[index];
+        }
+    }
+}
 
 static struct Row *get_row(const Table *table, size_t index)
 {
@@ -200,13 +201,13 @@ static void print_text(const struct Cell *cell,
     int actual_line = 0;
     switch (get_v_align(default_v, cell))
     {
-    case V_ALIGN_TOP:
+    case TBL_V_ALIGN_TOP:
         actual_line = line_index;
         break;
-    case V_ALIGN_CENTER:
+    case TBL_V_ALIGN_CENTER:
         actual_line = line_index - (total_height - cell->text_height) / 2;
         break;
-    case V_ALIGN_BOTTOM:
+    case TBL_V_ALIGN_BOTTOM:
         actual_line = line_index - (total_height - cell->text_height);
     }
 
@@ -231,21 +232,20 @@ static void print_text(const struct Cell *cell,
 
     switch (get_h_align(default_h, cell))
     {
-    case H_ALIGN_LEFT:
+    case TBL_H_ALIGN_LEFT:
     {
         fprintf(stream, "%-*.*s", adjusted_total_len, bytes, string);
         break;
     }
-    case H_ALIGN_RIGHT:
+    case TBL_H_ALIGN_RIGHT:
     {
         fprintf(stream, "%*.*s", adjusted_total_len, bytes, string);
         break;
     }
-    case H_ALIGN_CENTER:
+    case TBL_H_ALIGN_CENTER:
     {
         int padding = (total_width - string_length) / 2;
-        fprintf(stream, "%*s%.*s%*s", padding, "", bytes, string,
-                (total_width - string_length) % 2 == 0 ? padding : padding + 1, "");
+        fprintf(stream, "%*s%.*s%*s", padding, "", bytes, string, (total_width - string_length) % 2 == 0 ? padding : padding + 1, "");
         break;
     }
     }
@@ -323,13 +323,18 @@ static TableBorderStyle get_border_left(TableBorderStyle default_style, const st
 
 static void count_styles(TableBorderStyle style, size_t *out_num_single, size_t *out_num_double)
 {
-    if (style == BORDER_SINGLE)
+    if (style == TBL_BORDER_SINGLE)
+    {
         (*out_num_single)++;
-    if (style == BORDER_DOUBLE)
+    }
+    if (style == TBL_BORDER_DOUBLE)
+    {
         (*out_num_double)++;
+    }
 }
 
 static void print_intersection_char(
+    bool alternative_style,
     TableBorderStyle default_right_border_left,
     TableBorderStyle default_below_border_above,
     struct Cell *right_above,
@@ -340,28 +345,28 @@ static void print_intersection_char(
     size_t num_single = 0;
     size_t num_double = 0;
 
-    TableBorderStyle above = BORDER_NONE;
+    TableBorderStyle above = TBL_BORDER_NONE;
     if (right_above != NULL)
     {
         above = get_border_left(default_right_border_left, right_above);
         count_styles(above, &num_single, &num_double);
     }
 
-    TableBorderStyle right = BORDER_NONE;
+    TableBorderStyle right = TBL_BORDER_NONE;
     if (right_below != NULL)
     {
         right = get_border_above(default_below_border_above, right_below);
         count_styles(right, &num_single, &num_double);
     }
 
-    TableBorderStyle below = BORDER_NONE;
+    TableBorderStyle below = TBL_BORDER_NONE;
     if (right_below != NULL)
     {
         below = get_border_left(default_right_border_left, right_below);
         count_styles(below, &num_single, &num_double);
     }
 
-    TableBorderStyle left = BORDER_NONE;
+    TableBorderStyle left = TBL_BORDER_NONE;
     if (left_below != NULL)
     {
         left = get_border_above(default_below_border_above, left_below);
@@ -369,30 +374,30 @@ static void print_intersection_char(
     }
 
     size_t index = 0;
-    if (above != BORDER_NONE)
+    if (above != TBL_BORDER_NONE)
     {
         index |= (1 << 0);
     }
-    if (right != BORDER_NONE)
+    if (right != TBL_BORDER_NONE)
     {
         index |= (1 << 1);
     }
-    if (below != BORDER_NONE)
+    if (below != TBL_BORDER_NONE)
     {
         index |= (1 << 2);
     }
-    if (left != BORDER_NONE)
+    if (left != TBL_BORDER_NONE)
     {
         index |= (1 << 3);
     }
 
     if (num_double > num_single)
     {
-        fprintf(stream, "%s", BORDER_MATRIX_DOUBLE[BORDER_LOOKUP[index]]);
+        fprintf(stream, "%s", get_border(BORDER_LOOKUP[index], TBL_BORDER_DOUBLE, alternative_style));
     }
     else
     {
-        fprintf(stream, "%s", BORDER_MATRIX_SINGLE[BORDER_LOOKUP[index]]);
+        fprintf(stream, "%s", get_border(BORDER_LOOKUP[index], TBL_BORDER_SINGLE, alternative_style));
     }
 }
 
@@ -410,11 +415,14 @@ static void print_row_border(Table *table,
         // Print vline-hline intersection
         if (table->border_left_counters[i] > 0)
         {
-            print_intersection_char(table->borders_left[i],
-                                    below_row->border_above,
-                                    above_row != NULL ? &above_row->cells[i] : NULL,
-                                    i > 0 ? &below_row->cells[i - 1] : NULL,
-                                    &below_row->cells[i], stream);
+            print_intersection_char(
+                table->alternative_style,
+                table->borders_left[i],
+                below_row->border_above,
+                above_row != NULL ? &above_row->cells[i] : NULL,
+                i > 0 ? &below_row->cells[i - 1] : NULL,
+                &below_row->cells[i],
+                stream);
         }
 
         // Print hline in between intersections (or content when cell has span_y > 1)
@@ -422,13 +430,13 @@ static void print_row_border(Table *table,
         {
             switch (get_border_above(below_row->border_above, &below_row->cells[i]))
             {
-            case BORDER_SINGLE:
-                print_repeated(BORDER_MATRIX_SINGLE[HLINE_INDEX], col_widths[i], stream);
+            case TBL_BORDER_SINGLE:
+                print_repeated(get_border(HLINE_INDEX, TBL_BORDER_SINGLE, table->alternative_style), col_widths[i], stream);
                 break;
-            case BORDER_DOUBLE:
-                print_repeated(BORDER_MATRIX_DOUBLE[HLINE_INDEX], col_widths[i], stream);
+            case TBL_BORDER_DOUBLE:
+                print_repeated(get_border(HLINE_INDEX, TBL_BORDER_DOUBLE, table->alternative_style), col_widths[i], stream);
                 break;
-            case BORDER_NONE:
+            case TBL_BORDER_NONE:
                 print_repeated(" ", col_widths[i], stream);
             }
         }
@@ -459,7 +467,7 @@ static void override_superfluous_lines(Table *table, size_t last_col_width, size
         while (row != NULL)
         {
             table->curr_row = row;
-            override_above_border(table, BORDER_NONE);
+            tbl_override_above_border(table, TBL_BORDER_NONE);
             row = row->next_row;
         }
     }
@@ -478,7 +486,7 @@ static void override_superfluous_lines(Table *table, size_t last_col_width, size
         for (size_t i = 0; i < table->num_cols; i++)
         {
             table->curr_col = i;
-            override_left_border(table, BORDER_NONE);
+            tbl_override_left_border(table, TBL_BORDER_NONE);
         }
     }
 }
@@ -618,27 +626,10 @@ static void satisfy_constraints(size_t num_constrs, struct Constraint *constrs, 
 
 void get_dimensions(Table *table, size_t *out_col_widths, size_t *out_row_heights)
 {
-    struct Constraint *constrs = malloc((table->num_cols * table->num_rows + 1) * sizeof(struct Constraint)); // +1 for title
+    struct Constraint *constrs = malloc((table->num_cols * table->num_rows) * sizeof(struct Constraint));
     // Satisfy constraints of width
     struct Row *curr_row = table->first_row;
     size_t index         = 0;
-
-    if (table->title != NULL)
-    {
-        size_t min = get_text_width(table->title);
-        for (size_t j = 0; j < table->num_cols; j++)
-        {
-            if (min == 0)
-                break;
-            if (table->border_left_counters[j] > 0)
-                min--;
-        }
-        constrs[0] = (struct Constraint){
-            .min        = min,
-            .from_index = 0,
-            .to_index   = table->num_cols
-        };
-    }
 
     while (curr_row != NULL)
     {
@@ -719,30 +710,35 @@ void get_dimensions(Table *table, size_t *out_col_widths, size_t *out_row_height
 /*
 Returns: A new table with a single, empty row.
 */
-Table *get_empty_table()
+Table *tbl_get_new()
 {
     Table *res            = malloc(sizeof(Table));
     struct Row *first_row = malloc_row(0);
     *res                  = (Table){
+                         .alternative_style    = false,
                          .num_cols             = 0,
                          .curr_col             = 0,
                          .first_row            = first_row,
                          .curr_row             = first_row,
                          .num_rows             = 1,
-                         .h_aligns             = { H_ALIGN_LEFT },
-                         .v_aligns             = { V_ALIGN_TOP },
-                         .borders_left         = { BORDER_NONE },
-                         .border_left_counters = { 0 },
-                         .title                = NULL
+                         .h_aligns             = { TBL_H_ALIGN_LEFT },
+                         .v_aligns             = { TBL_V_ALIGN_TOP },
+                         .borders_left         = { TBL_BORDER_NONE },
+                         .border_left_counters = { 0 }
     };
     return res;
+}
+
+void tbl_set_alternative_style(Table *table)
+{
+    table->alternative_style = true;
 }
 
 /*
 Summary: Frees all rows and content strings in cells created by add_cell_fmt.
     Don't use the table any more, get a new one!
 */
-void free_table(Table *table)
+void tbl_free(Table *table)
 {
     assert(table != NULL);
 
@@ -753,11 +749,10 @@ void free_table(Table *table)
         free_row(table, row);
         row = next_row;
     }
-    free(table->title);
     free(table);
 }
 
-void set_position(Table *table, size_t x, size_t y)
+void tbl_set_position(Table *table, size_t x, size_t y)
 {
     assert(table != NULL);
     assert(x < TABLE_MAX_COLS);
@@ -779,7 +774,7 @@ void set_position(Table *table, size_t x, size_t y)
 /*
 Summary: Next inserted cell will be inserted at first unset column of next row.
 */
-void next_row(Table *table)
+void tbl_next_row(Table *table)
 {
     assert(table != NULL);
 
@@ -803,18 +798,18 @@ void next_row(Table *table)
 Summary: Adds next cell. Buffer is not copied. print_table will access it.
     Ensure that lifetime of buffer outlasts last call of print_table!
 */
-void add_cell(Table *table, const char *text)
+void tbl_add_cell(Table *table, const char *text)
 {
     add_text_cell(table, (char *)text, false);
 }
 
-void add_cells(Table *table, size_t num_cells, ...)
+void tbl_add_cells(Table *table, size_t num_cells, ...)
 {
     va_list args;
     va_start(args, num_cells);
     for (size_t i = 0; i < num_cells; i++)
     {
-        add_cell(table, va_arg(args, const char *));
+        tbl_add_cell(table, va_arg(args, const char *));
     }
     va_end(args);
 }
@@ -822,12 +817,12 @@ void add_cells(Table *table, size_t num_cells, ...)
 /*
 Summary: Same as add_cell, but frees buffer on reset
 */
-void add_cell_gc(Table *table, char *text)
+void tbl_add_cell_gc(Table *table, char *text)
 {
     add_text_cell(table, text, true);
 }
 
-void add_empty_cell(Table *table)
+void tbl_add_empty_cell(Table *table)
 {
     add_text_cell(table, NULL, false);
 }
@@ -836,34 +831,19 @@ void add_empty_cell(Table *table)
 Summary: Adds next cell and maintains buffer of text.
     Use add_cell to save memory if you maintain a content string yourself.
 */
-void add_cell_fmt(Table *table, const char *fmt, ...)
+void tbl_add_cell_fmt(Table *table, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    add_cell_vfmt(table, fmt, args);
+    tbl_add_cell_vfmt(table, fmt, args);
     va_end(args);
 }
 
-void add_cell_vfmt(Table *table, const char *fmt, va_list args)
+void tbl_add_cell_vfmt(Table *table, const char *fmt, va_list args)
 {
     StringBuilder builder = strb_create(0);
     vstrb_append(&builder, fmt, args);
     add_text_cell(table, builder.buffer, true);
-}
-
-void set_title_fmt(Table *table, const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    set_title_vfmt(table, fmt, args);
-    va_end(args);
-}
-
-void set_title_vfmt(Table *table, const char *fmt, va_list args)
-{
-    StringBuilder builder = strb_create(0);
-    vstrb_append(&builder, fmt, args);
-    table->title = builder.buffer;
 }
 
 /*
@@ -871,22 +851,22 @@ Summary: Puts contents of memory-contiguous 2D array into table cell by cell.
     Strings are not copied. Ensure that lifetime of array outlasts last call of print_table.
     Position of next insertion is first cell in next row.
 */
-void add_cells_from_array(Table *table, size_t width, size_t height, const char **array)
+void tbl_add_cells_from_array(Table *table, size_t width, size_t height, const char **array)
 {
     for (size_t i = 0; i < height; i++)
     {
         for (size_t j = 0; j < width; j++)
         {
-            add_cell(table, *(array + i * width + j));
+            tbl_add_cell(table, *(array + i * width + j));
         }
-        next_row(table);
+        tbl_next_row(table);
     }
 }
 
 /*
 Summary: Sets default alignment of columns
 */
-void set_default_alignments(Table *table, size_t num_alignments, const TableHAlign *h_aligns, const TableVAlign *v_aligns)
+void tbl_set_default_alignments(Table *table, size_t num_alignments, const TableHAlign *h_aligns, const TableVAlign *v_aligns)
 {
     assert(table != NULL);
     assert(num_alignments <= TABLE_MAX_COLS);
@@ -894,22 +874,26 @@ void set_default_alignments(Table *table, size_t num_alignments, const TableHAli
     for (size_t i = 0; i < num_alignments; i++)
     {
         if (h_aligns != NULL)
+        {
             table->h_aligns[i] = h_aligns[i];
+        }
         if (v_aligns != NULL)
+        {
             table->v_aligns[i] = v_aligns[i];
+        }
     }
 }
 
 /*
 Summary: Overrides alignment of current cell
 */
-void override_horizontal_alignment(Table *table, TableHAlign h_align)
+void tbl_override_horizontal_alignment(Table *table, TableHAlign h_align)
 {
     assert(table != NULL);
     override_h_align_internal(get_curr_cell(table), h_align);
 }
 
-void override_vertical_alignment(Table *table, TableVAlign v_align)
+void tbl_override_vertical_alignment(Table *table, TableVAlign v_align)
 {
     assert(table != NULL);
     override_v_align_internal(get_curr_cell(table), v_align);
@@ -918,7 +902,7 @@ void override_vertical_alignment(Table *table, TableVAlign v_align)
 /*
 Summary: Overrides alignment of all cells in current row
 */
-void override_horizontal_alignment_of_row(Table *table, TableHAlign h_align)
+void tbl_override_horizontal_alignment_of_row(Table *table, TableHAlign h_align)
 {
     assert(table != NULL);
     for (size_t i = 0; i < TABLE_MAX_COLS; i++)
@@ -927,7 +911,7 @@ void override_horizontal_alignment_of_row(Table *table, TableHAlign h_align)
     }
 }
 
-void override_vertical_alignment_of_row(Table *table, TableVAlign v_align)
+void tbl_override_vertical_alignment_of_row(Table *table, TableVAlign v_align)
 {
     assert(table != NULL);
     for (size_t i = 0; i < TABLE_MAX_COLS; i++)
@@ -936,21 +920,21 @@ void override_vertical_alignment_of_row(Table *table, TableVAlign v_align)
     }
 }
 
-void set_hline(Table *table, TableBorderStyle style)
+void tbl_set_hline(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
-    if (table->curr_row->border_above != BORDER_NONE)
+    if (table->curr_row->border_above != TBL_BORDER_NONE)
     {
         table->curr_row->border_above_counter--;
     }
-    if (style != BORDER_NONE)
+    if (style != TBL_BORDER_NONE)
     {
         table->curr_row->border_above_counter++;
     }
     table->curr_row->border_above = style;
 }
 
-void set_vline(Table *table, size_t index, TableBorderStyle style)
+void tbl_set_vline(Table *table, size_t index, TableBorderStyle style)
 {
     assert(table != NULL);
     assert(index < TABLE_MAX_COLS);
@@ -959,11 +943,11 @@ void set_vline(Table *table, size_t index, TableBorderStyle style)
     {
         table->num_cols = index + 1;
     }
-    if (table->borders_left[index] != BORDER_NONE)
+    if (table->borders_left[index] != TBL_BORDER_NONE)
     {
         table->border_left_counters[index]--;
     }
-    if (style != BORDER_NONE)
+    if (style != TBL_BORDER_NONE)
     {
         table->border_left_counters[index]++;
     }
@@ -971,26 +955,26 @@ void set_vline(Table *table, size_t index, TableBorderStyle style)
     table->borders_left[index] = style;
 }
 
-void make_boxed(Table *table, TableBorderStyle style)
+void tbl_make_boxed(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
-    set_position(table, 0, 0);
-    set_vline(table, 0, style);
-    set_hline(table, style);
-    set_position(table, table->num_cols, table->num_rows - 1);
-    set_vline(table, table->num_cols, style);
-    set_hline(table, style);
+    tbl_set_position(table, 0, 0);
+    tbl_set_vline(table, 0, style);
+    tbl_set_hline(table, style);
+    tbl_set_position(table, table->num_cols, table->num_rows - 1);
+    tbl_set_vline(table, table->num_cols, style);
+    tbl_set_hline(table, style);
 }
 
-void override_left_border(Table *table, TableBorderStyle style)
+void tbl_override_left_border(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
 
-    if (get_curr_cell(table)->override_border_left && get_curr_cell(table)->border_left != BORDER_NONE)
+    if (get_curr_cell(table)->override_border_left && get_curr_cell(table)->border_left != TBL_BORDER_NONE)
     {
         table->border_left_counters[table->curr_col]--;
     }
-    if (style != BORDER_NONE)
+    if (style != TBL_BORDER_NONE)
     {
         table->border_left_counters[table->curr_col]++;
     }
@@ -999,15 +983,15 @@ void override_left_border(Table *table, TableBorderStyle style)
     get_curr_cell(table)->override_border_left = true;
 }
 
-void override_above_border(Table *table, TableBorderStyle style)
+void tbl_override_above_border(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
 
-    if (get_curr_cell(table)->override_border_above && get_curr_cell(table)->border_above != BORDER_NONE)
+    if (get_curr_cell(table)->override_border_above && get_curr_cell(table)->border_above != TBL_BORDER_NONE)
     {
         table->curr_row->border_above_counter--;
     }
-    if (style != BORDER_NONE)
+    if (style != TBL_BORDER_NONE)
     {
         table->curr_row->border_above_counter++;
     }
@@ -1020,7 +1004,7 @@ void override_above_border(Table *table, TableBorderStyle style)
 Summary: Changes span of current cell
     When spanning cell clashes with already set cells, the span will be truncated
 */
-void set_span(Table *table, size_t span_x, size_t span_y)
+void tbl_set_span(Table *table, size_t span_x, size_t span_y)
 {
     assert(table != NULL);
     assert(span_x != 0);
@@ -1051,12 +1035,12 @@ void set_span(Table *table, size_t span_x, size_t span_y)
 
                 if (j != 0)
                 {
-                    child->border_left          = BORDER_NONE;
+                    child->border_left          = TBL_BORDER_NONE;
                     child->override_border_left = true;
                 }
                 if (i != 0)
                 {
-                    child->border_above          = BORDER_NONE;
+                    child->border_above          = TBL_BORDER_NONE;
                     child->override_border_above = true;
                 }
             }
@@ -1080,13 +1064,13 @@ void set_span(Table *table, size_t span_x, size_t span_y)
     }
 }
 
-void set_all_vlines(Table *table, TableBorderStyle style)
+void tbl_set_all_vlines(Table *table, TableBorderStyle style)
 {
     assert(table != NULL);
 
     for (size_t i = 1; i < table->num_cols; i++)
     {
-        set_vline(table, i, style);
+        tbl_set_vline(table, i, style);
     }
 }
 
@@ -1095,13 +1079,13 @@ void set_all_vlines(Table *table, TableBorderStyle style)
 /*
 Summary: Prints table to stdout
 */
-void print_table(Table *table)
+void tbl_print(Table *table)
 {
     assert(table != NULL);
-    fprint_table(table, stdout);
+    tbl_fprint(table, stdout);
 }
 
-void fprint_table(Table *table, FILE *stream)
+void tbl_fprint(Table *table, FILE *stream)
 {
     if (table->num_cols == 0)
     {
@@ -1146,13 +1130,13 @@ void fprint_table(Table *table, FILE *stream)
                 {
                     switch (get_border_left(table->borders_left[k], &curr_row->cells[k]))
                     {
-                    case BORDER_SINGLE:
-                        fprintf(stream, "%s", BORDER_MATRIX_SINGLE[VLINE_INDEX]);
+                    case TBL_BORDER_SINGLE:
+                        fprintf(stream, "%s", get_border(VLINE_INDEX, TBL_BORDER_SINGLE, table->alternative_style));
                         break;
-                    case BORDER_DOUBLE:
-                        fprintf(stream, "%s", BORDER_MATRIX_DOUBLE[VLINE_INDEX]);
+                    case TBL_BORDER_DOUBLE:
+                        fprintf(stream, "%s", get_border(VLINE_INDEX, TBL_BORDER_DOUBLE, table->alternative_style));
                         break;
-                    case BORDER_NONE:
+                    case TBL_BORDER_NONE:
                         fprintf(stream, " ");
                     }
                 }

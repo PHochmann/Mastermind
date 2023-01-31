@@ -1,7 +1,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -24,13 +23,6 @@ struct MM_Context
     // Optional
     bool fb_lookup_initialized;
     Feedback_t *feedback_lookup; // On heap
-
-    // Recommender
-    bool lookups_init;
-    Code_t recomm_step1_lookup;
-    bool recomm_step1_init;
-    Code_t recomm_step2_lookup[MAX_NUM_FEEDBACKS];
-    bool recomm_step2_init;
 };
 
 struct MM_Match
@@ -45,8 +37,6 @@ struct MM_Match
     CodeSize_t num_solutions;
     bool *solution_space; // On heap
 };
-
-void init_lookups(MM_Context *ctx);
 
 static Feedback_t calculate_fb(MM_Context *ctx, Code_t a, Code_t b)
 {
@@ -82,9 +72,7 @@ void init_feedback_lookup(MM_Context *ctx)
     {
         return;
     }
-
     ctx->feedback_lookup = malloc(ctx->num_codes * ctx->num_codes * sizeof(Code_t));
-
     for (CodeSize_t a = 0; a < ctx->num_codes; a++)
     {
         for (CodeSize_t b = 0; b <= a; b++)
@@ -94,46 +82,6 @@ void init_feedback_lookup(MM_Context *ctx)
         }
     }
     ctx->fb_lookup_initialized = true;
-}
-
-void init_recommendation_lookup(MM_Context *ctx)
-{
-    /* We build a lookup table for the first and second recommendation.
-     * This drastically improves performance since computation time for
-     * mm_recommend() decreases a lot for further guesses because of the smaller
-     * solution space.
-     */
-    // 1. recommendation
-    MM_Match *match          = mm_new_match(ctx, true);
-    ctx->recomm_step1_lookup = mm_recommend(match);
-    ctx->recomm_step1_init   = true;
-    mm_free_match(match);
-
-    // 2. recommendation
-    for (FeedbackSize_t fb = 0; fb < ctx->num_feedbacks; fb++)
-    {
-        MM_Match *match = mm_new_match(ctx, true);
-        mm_constrain(match, mm_recommend(match), fb);
-        ctx->recomm_step2_lookup[fb] = mm_recommend(match);
-        mm_free_match(match);
-    }
-    ctx->recomm_step2_init = true;
-}
-
-void init_lookups(MM_Context *ctx)
-{
-    if (ctx->lookups_init)
-    {
-        return;
-    }
-
-    ctx->lookups_init = true;
-    if (ctx->num_codes > 500)
-    {
-        printf("Initializing data structures for recommendation, this may take a while...\n");
-    }
-    init_feedback_lookup(ctx);
-    init_recommendation_lookup(ctx);
 }
 
 /*
@@ -154,8 +102,14 @@ MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation)
 
     if (enable_recommendation)
     {
+        // init_feedback_lookupinit_feedback_lookup(ctx);
         result->num_solutions  = ctx->num_codes;
         result->solution_space = malloc(ctx->num_codes * sizeof(bool));
+        if (result->solution_space == NULL)
+        {
+            result->enable_recommendation = false;
+            return result;
+        }
         for (CodeSize_t i = 0; i < ctx->num_codes; i++)
         {
             result->solution_space[i] = true;
@@ -199,7 +153,7 @@ MM_Context *mm_new_ctx(int max_guesses, int num_slots, int num_colors)
 
 void mm_free_ctx(MM_Context *ctx)
 {
-    if (ctx->lookups_init)
+    if (ctx->fb_lookup_initialized)
     {
         free(ctx->feedback_lookup);
     }
@@ -275,16 +229,11 @@ void mm_free_match(MM_Match *match)
     free(match);
 }
 
-Code_t mm_recommend(MM_Match *match)
+Code_t mm_recommend_guess(MM_Match *match)
 {
-    init_lookups(match->ctx);
-    if (match->ctx->recomm_step1_init && (match->num_turns == 0))
+    if (!match->enable_recommendation)
     {
-        return match->ctx->recomm_step1_lookup;
-    }
-    else if (match->ctx->recomm_step2_init && (match->num_turns == 1))
-    {
-        return match->ctx->recomm_step2_lookup[match->feedbacks[0]];
+        return 0;
     }
 
     long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
@@ -366,6 +315,11 @@ void mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
         }
         match->num_solutions = remaining;
     }
+}
+
+MM_Context *mm_get_context(MM_Match *match)
+{
+    return match->ctx;
 }
 
 CodeSize_t mm_get_remaining_solutions(MM_Match *match)

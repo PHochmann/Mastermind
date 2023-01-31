@@ -11,7 +11,6 @@
 #include "string_util.h"
 #include "table.h"
 
-
 typedef struct
 {
     const char *str;
@@ -19,11 +18,11 @@ typedef struct
 } Color;
 
 static const Color colors[] = {
-    { "Orange", "\033[38;5;208m"},
-    { " Red  ", "\033[38;5;9m" },
+    { "Orange", "\033[38;5;208m" },
+    { " Red  ", "\033[38;5;196m" },
     { "Yellow", "\033[38;5;226m" },
     { " Blue ", "\033[38;5;21m" },
-    { " Cyan ", "\033[38;5;14m" },
+    { " Cyan ", "\033[38;5;51m" },
     { "Green ", "\033[38;5;40m" },
     { "DrkGrn", "\033[38;5;22m" },
     { " Pink ", "\033[38;5;13m" },
@@ -34,20 +33,6 @@ static const Color colors[] = {
 #define BLK_BG "\033[48;5;0m"
 #define WHT_BG "\033[48;5;15m"
 #define RST    "\033[0m"
-
-// Static functions
-
-/*
-static const char *get_col_str(int index)
-{
-
-}
-
-static const char *get_col_prefix(int index)
-{
-
-}
-*/
 
 // Messages
 
@@ -89,40 +74,17 @@ char *readline_fmt(const char *fmt, ...)
     return result;
 }
 
-Feedback_t read_feedback(MM_Context *ctx)
-{
-    StringBuilder pb = strb_create();
-    strb_append(&pb, "#blacks, #whites: ");
-
-    bool validated = false;
-    char *input    = NULL;
-
-    while (!validated)
-    {
-        input = readline(strb_to_str(&pb));
-        if (input == NULL)
-        {
-            continue;
-        }
-        clear_input();
-
-        if (strlen(input) == 2)
-        {
-            validated = true;
-        }
-        else
-        {
-            validated = false;
-        }
-    }
-
-    return mm_feedback_to_code(ctx, input[0] - '0', input[1] - '0');
-}
-
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 {
     StringBuilder pb = strb_create();
-    strb_append(&pb, "%d/%d colors [", turn, mm_get_max_guesses(ctx));
+    if (turn != -1)
+    {
+        strb_append(&pb, "%d/%d colors [", turn, mm_get_max_guesses(ctx));
+    }
+    else
+    {
+        strb_append(&pb, "colors [");
+    }
     for (int i = 0; i < mm_get_num_colors(ctx); i++)
     {
         strb_append(&pb, "%s%c" RST, colors[i].col, to_lower(*first_char(colors[i].str)));
@@ -139,6 +101,7 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
         clear_input();
         if (input == NULL)
         {
+            strb_destroy(&pb);
             return false;
         }
 
@@ -171,7 +134,6 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
         free(input);
     }
     *out_code = mm_colors_to_code(ctx, input_colors);
-    print_colors(ctx, *out_code);
     strb_destroy(&pb);
     return true;
 }
@@ -216,6 +178,16 @@ void print_feedback(MM_Context *ctx, Feedback_t feedback)
     }
 }
 
+void print_guess(int index, MM_Match *match)
+{
+    print_colors(mm_get_context(match), mm_get_history_guess(match, index));
+    print_feedback(mm_get_context(match), mm_get_history_feedback(match, index));
+    if ((mm_get_turns(match) - 1 == index) && (mm_get_remaining_solutions(match) == 1))
+    {
+        printf(" *");
+    }
+}
+
 void print_round_summary_table(MM_Context *ctx,
                                int num_players,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
@@ -235,22 +207,23 @@ void print_round_summary_table(MM_Context *ctx,
         }
     }
 
-    Table *tbl = get_empty_table();
-    set_span(tbl, num_players * 3, 1);
-    override_horizontal_alignment(tbl, H_ALIGN_CENTER);
-    add_cell_fmt(tbl, "Summary of round %d", round);
-    next_row(tbl);
-    set_hline(tbl, BORDER_SINGLE);
+    Table *tbl = tbl_get_new();
+    tbl_set_alternative_style(tbl);
+    tbl_set_span(tbl, num_players * 3, 1);
+    tbl_override_horizontal_alignment(tbl, TBL_H_ALIGN_CENTER);
+    tbl_add_cell_fmt(tbl, "Summary of round %d", round);
+    tbl_next_row(tbl);
+    tbl_set_hline(tbl, TBL_BORDER_SINGLE);
 
     for (int i = 0; i < num_players; i++)
     {
-        add_cell_fmt(tbl, " %s ", names[i]);
-        add_cell(tbl, "#B");
-        add_cell(tbl, "#W ");
+        tbl_add_cell_fmt(tbl, " %s ", names[i]);
+        tbl_add_cell(tbl, "#B");
+        tbl_add_cell(tbl, "#W ");
     }
 
-    next_row(tbl);
-    set_hline(tbl, BORDER_SINGLE);
+    tbl_next_row(tbl);
+    tbl_set_hline(tbl, TBL_BORDER_SINGLE);
 
     for (int i = 0; i < max_turns + 1; i++)
     {
@@ -258,50 +231,50 @@ void print_round_summary_table(MM_Context *ctx,
         {
             if (i < turns[j])
             {
-                add_cell_gc(tbl, get_colors_string(ctx, guesses[j][i]));
+                tbl_add_cell_gc(tbl, get_colors_string(ctx, guesses[j][i]));
                 int b, w;
                 mm_code_to_feedback(ctx, mm_get_feedback(ctx, guesses[j][i], solution), &b, &w);
-                add_cell_fmt(tbl, " %d ", b);
-                add_cell_fmt(tbl, " %d ", w);
+                tbl_add_cell_fmt(tbl, " %d ", b);
+                tbl_add_cell_fmt(tbl, " %d ", w);
             }
             else
             {
-                add_empty_cell(tbl);
-                add_empty_cell(tbl);
-                add_empty_cell(tbl);
+                tbl_add_empty_cell(tbl);
+                tbl_add_empty_cell(tbl);
+                tbl_add_empty_cell(tbl);
             }
         }
-        next_row(tbl);
+        tbl_next_row(tbl);
     }
-    set_hline(tbl, BORDER_SINGLE);
+    tbl_set_hline(tbl, TBL_BORDER_SINGLE);
     for (int i = 0; i < num_players; i++)
     {
-        set_span(tbl, 3, 1);
+        tbl_set_span(tbl, 3, 1);
         if (guesses[i][turns[i] - 1] == solution)
         {
-            add_cell_fmt(tbl, " time: %d:%02d ", seconds[i] / 60, seconds[i] % 60);
+            tbl_add_cell_fmt(tbl, " time: %d:%02d ", seconds[i] / 60, seconds[i] % 60);
         }
         else
         {
-            add_empty_cell(tbl);
+            tbl_add_empty_cell(tbl);
         }
     }
-    next_row(tbl);
+    tbl_next_row(tbl);
     for (int i = 0; i < num_players; i++)
     {
-        set_span(tbl, 3, 1);
-        add_cell_fmt(tbl, " %d points total ", points[i]);
+        tbl_set_span(tbl, 3, 1);
+        tbl_add_cell_fmt(tbl, " %d points total ", points[i]);
     }
-    next_row(tbl);
+    tbl_next_row(tbl);
 
     for (int i = 1; i < num_players; i++)
     {
-        set_vline(tbl, i * 3, BORDER_SINGLE);
+        tbl_set_vline(tbl, i * 3, TBL_BORDER_SINGLE);
     }
 
-    make_boxed(tbl, BORDER_SINGLE);
-    print_table(tbl);
-    free_table(tbl);
+    tbl_make_boxed(tbl, TBL_BORDER_SINGLE);
+    tbl_print(tbl);
+    tbl_free(tbl);
 }
 
 bool readline_int(const char *prompt, int default_value, int min, int max, int *result)

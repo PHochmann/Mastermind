@@ -4,8 +4,8 @@
 
 #define MAX_MAX_GUESSES   20
 #define MAX_NUM_COLORS    8
-#define MAX_NUM_SLOTS     10
-#define MAX_NUM_FEEDBACKS 65 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
+#define MAX_NUM_SLOTS     6
+#define MAX_NUM_FEEDBACKS 27 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
 #define CONFIG_STRATEGY   MM_STRAT_AVERAGE
 
 typedef uint32_t Code_t;
@@ -46,7 +46,8 @@ int mm_get_num_slots(MM_Context *ctx);
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation);
 void mm_free_match(MM_Match *match);
 void mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
-Code_t mm_recommend(MM_Match *match);
+Code_t mm_recommend_guess(MM_Match *match);
+MM_Context *mm_get_context(MM_Match *match);
 
 CodeSize_t mm_get_remaining_solutions(MM_Match *match);
 int mm_get_turns(MM_Match *match);

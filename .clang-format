@@ -12,3 +12,5 @@ BinaryOperatorStyle: NonAssignment
 AllowShortFunctionsOnASingleLine: Empty
 ColumnLimit: 0
 SortIncludes: false
+BinPackArguments: false
+BinPackParameters: false

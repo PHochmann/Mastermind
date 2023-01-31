@@ -14,8 +14,6 @@
 #include "util/string_util.h"
 #include "util/table.h"
 
-
-
 #define DEFAULT_IP "127.0.0.1"
 #define PORT       25567
 
@@ -35,11 +33,7 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
         }
         feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
-        print_feedback(ctx, feedback);
-        if (mm_get_remaining_solutions(match) == 1)
-        {
-            printf(" *");
-        }
+        print_guess(mm_get_turns(match) - 1, match);
         printf("\n");
     }
     if (mm_get_state(match) == MM_MATCH_WON)
@@ -51,37 +45,6 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
         print_losing_message(ctx, solution);
     }
     return match;
-}
-
-static void recommender(MM_Context *ctx)
-{
-    MM_Match *match     = mm_new_match(ctx, true);
-    Feedback_t feedback = 0;
-    while (mm_get_state(match) == MM_MATCH_PENDING)
-    {
-        Code_t recommendation = mm_recommend(match);
-        print_colors(ctx, recommendation);
-        printf("\n");
-        feedback = read_feedback(ctx);
-        print_feedback(ctx, feedback);
-        printf("\n");
-        mm_constrain(match, recommendation, feedback);
-        if (mm_get_remaining_solutions(match) == 0)
-        {
-            printf("That's not possible - inconsistent feedback given\n\n");
-            mm_free_match(match);
-            return;
-        }
-    }
-    if (mm_get_state(match) == MM_MATCH_WON)
-    {
-        printf("I knew I would guess right! I'm the best!\n\n");
-    }
-    else
-    {
-        printf("I did not make it, I'm a bad AI :(\n\n");
-    }
-    mm_free_match(match);
 }
 
 static void multiplayer(MM_Context *ctx)
@@ -152,9 +115,9 @@ static void multiplayer(MM_Context *ctx)
 static void options(MM_Context **ctx)
 {
     int max_guesses, num_slots, num_colors;
-    if (readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES, &max_guesses)
-        && readline_int("Number of slots", mm_get_num_slots(*ctx), 1, MAX_NUM_SLOTS, &num_slots)
-        && readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS, &num_colors))
+    if (readline_int("Max guesses", mm_get_max_guesses(*ctx), 2, MAX_MAX_GUESSES, &max_guesses)
+        && readline_int("Number of slots", mm_get_num_slots(*ctx), 2, MAX_NUM_SLOTS, &num_slots)
+        && readline_int("Number of colors", mm_get_num_colors(*ctx), 2, MAX_NUM_COLORS, &num_colors))
     {
         mm_free_ctx(*ctx);
         *ctx = mm_new_ctx(max_guesses, num_slots, num_colors);
@@ -169,12 +132,11 @@ static void singleplayer(MM_Context *ctx)
 int main()
 {
     srand(time(NULL));
-
     MM_Context *ctx = mm_new_ctx(10, 4, 6);
 
     while (true)
     {
-        char *input = readline("(s)ingleplayer, (q)uick, (m)ultiplayer, (o)ptions or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (m)ultiplayer, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
@@ -189,9 +151,6 @@ int main()
             case 's':
                 singleplayer(ctx);
                 break;
-            case 'q':
-                quick(ctx);
-                break;
             case 'm':
                 multiplayer(ctx);
                 break;
@@ -199,7 +158,6 @@ int main()
                 options(&ctx);
                 break;
             case 'e':
-                printf("Mastermind v1.0.1 (c) 2022 Justine B. Geuenich, Philipp Hochmann\n");
                 exit = true;
                 break;
             }

@@ -328,7 +328,7 @@ static void handle_transition(ClientData *data)
                             if (summary.points[i] == best_points)
                             {
                                 printf("%s won!\n",
-                                    (i == data->rules.player_id) ? "You" : data->names.players[i]);
+                                       (i == data->rules.player_id) ? "You" : data->names.players[i]);
                             }
                         }
                     }
@@ -377,6 +377,7 @@ static void handle_transition(ClientData *data)
             }
             else
             {
+                print_colors(data->ctx, guess_package.guess);
                 validated = true;
             }
         }
@@ -397,13 +398,10 @@ static void handle_transition(ClientData *data)
         switch (feedback.match_state)
         {
         case MM_MATCH_LOST:
-            printf("~ ~ Game Over! You did not make it in %d turns. ~ ~\n", data->rules.max_guesses);
-            printf("~ ~ Solution: ");
-            print_colors(data->ctx, feedback.solution);
-            printf(" ~ ~\n");
+            print_losing_message(data->ctx, feedback.solution);
             break;
         case MM_MATCH_WON:
-            printf("~ ~ You guessed right! You took %d turns. ~ ~\n", data->curr_turn);
+            print_winning_message(data->curr_turn);
             break;
         case MM_MATCH_PENDING:
             break;
