@@ -11,18 +11,10 @@
 #include "mastermind.h"
 #include "multiplayer/client.h"
 #include "multiplayer/server.h"
-#include "string_util.h"
-#include "table.h"
+#include "util/string_util.h"
+#include "util/table.h"
 
-#define RED "\033[38:2:255:000:000m"
-#define GRN "\033[38:2:000:255:000m"
-#define YEL "\033[38:2:250:237:000m"
-#define BLU "\033[38:2:000:000:255m"
-#define CYN "\033[38:2:065:253:254m"
-#define ORN "\033[38:2:255:165:000m"
-#define PIN "\033[38:2:219:112:147m"
-#define DRG "\033[38:2:085:107:047m"
-#define RST "\033[0m"
+
 
 #define DEFAULT_IP "127.0.0.1"
 #define PORT       25567
@@ -34,7 +26,7 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
         Code_t input;
-        if (!read_colors(ctx, mm_get_turns(match), &input))
+        if (!read_colors(ctx, mm_get_turns(match) + 1, &input))
         {
             printf("Aborted. Solution was: ");
             print_colors(ctx, solution);
@@ -56,10 +48,7 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
     }
     else
     {
-        print_losing_message(mm_get_max_guesses(ctx));
-        printf("Solution: ");
-        print_colors(ctx, solution);
-        printf("\n\n");
+        print_losing_message(ctx, solution);
     }
     return match;
 }
@@ -95,7 +84,7 @@ static void recommender(MM_Context *ctx)
     mm_free_match(match);
 }
 
-static void multiplayer(MM_Context *ctx, const char *const *colors)
+static void multiplayer(MM_Context *ctx)
 {
     char *input = NULL;
     while (true)
@@ -123,11 +112,11 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
                 {
                     if (ip[0] == '\0')
                     {
-                        play_client(DEFAULT_IP, PORT, colors);
+                        play_client(DEFAULT_IP, PORT);
                     }
                     else
                     {
-                        play_client(ip, PORT, colors);
+                        play_client(ip, PORT);
                     }
                     free(ip);
                 }
@@ -160,7 +149,7 @@ static void multiplayer(MM_Context *ctx, const char *const *colors)
     }
 }
 
-static void options(MM_Context **ctx, const char *const *colors)
+static void options(MM_Context **ctx)
 {
     int max_guesses, num_slots, num_colors;
     if (readline_int("Max guesses", mm_get_max_guesses(*ctx), 1, MAX_MAX_GUESSES, &max_guesses)
@@ -168,7 +157,7 @@ static void options(MM_Context **ctx, const char *const *colors)
         && readline_int("Number of colors", mm_get_num_colors(*ctx), 1, MAX_NUM_COLORS, &num_colors))
     {
         mm_free_ctx(*ctx);
-        *ctx = mm_new_ctx(max_guesses, num_slots, num_colors, colors);
+        *ctx = mm_new_ctx(max_guesses, num_slots, num_colors);
     }
 }
 
@@ -181,12 +170,7 @@ int main()
 {
     srand(time(NULL));
 
-    const char *const colors[MAX_NUM_COLORS] = { ORN "Orange" RST, RED " Red  " RST,
-                                                 YEL "Yellow" RST, BLU " Blue " RST,
-                                                 CYN " Cyan " RST, GRN "Green " RST,
-                                                 DRG "DGreen" RST, PIN "Pink " RST };
-
-    MM_Context *ctx = mm_new_ctx(10, 4, 6, colors);
+    MM_Context *ctx = mm_new_ctx(10, 4, 6);
 
     while (true)
     {
@@ -209,10 +193,10 @@ int main()
                 quick(ctx);
                 break;
             case 'm':
-                multiplayer(ctx, colors);
+                multiplayer(ctx);
                 break;
             case 'o':
-                options(&ctx, colors);
+                options(&ctx);
                 break;
             case 'e':
                 printf("Mastermind v1.0.1 (c) 2022 Justine B. Geuenich, Philipp Hochmann\n");

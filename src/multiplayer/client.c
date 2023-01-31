@@ -22,7 +22,6 @@ typedef struct
     int socket;
     PlayerState previous_state;
     PlayerState state;
-    const char *const *colors;
     MM_Context *ctx;
     int curr_round;
     int curr_turn;
@@ -222,11 +221,11 @@ static void handle_transition(ClientData *data)
     {
         RulesPackage_R rules;
         receive(data->socket, &rules, sizeof(RulesPackage_R));
-        printf("~ ~ Server rules ~ ~\n"
+        printf("~ ~ Server rules colors~ ~\n"
                "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
                rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
         data->rules = rules;
-        data->ctx   = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors, data->colors);
+        data->ctx   = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors);
     }
     else if (data->state == PLAYER_STATE_CHOOSING_NAME)
     {
@@ -308,26 +307,29 @@ static void handle_transition(ClientData *data)
                 }
 
                 printf("\n~ ~ End of game ~ ~\n");
-                if (num_winners != 1)
+                if (data->rules.num_players > 1)
                 {
-                    printf("It's a draw between ");
-                    for (int i = 0; i < data->rules.num_players; i++)
+                    if (num_winners != 1)
                     {
-                        if (summary.points[i] == best_points)
+                        printf("It's a draw between ");
+                        for (int i = 0; i < data->rules.num_players; i++)
                         {
-                            printf("%s, ", data->names.players[i]);
+                            if (summary.points[i] == best_points)
+                            {
+                                printf("%s, ", data->names.players[i]);
+                            }
                         }
+                        printf("\n");
                     }
-                    printf("\n");
-                }
-                else
-                {
-                    for (int i = 0; i < data->rules.num_players; i++)
+                    else
                     {
-                        if (summary.points[i] == best_points)
+                        for (int i = 0; i < data->rules.num_players; i++)
                         {
-                            printf("%s won!\n",
-                                   (summary.winner_pl == data->rules.player_id) ? "You" : data->names.players[summary.winner_pl]);
+                            if (summary.points[i] == best_points)
+                            {
+                                printf("%s won!\n",
+                                    (i == data->rules.player_id) ? "You" : data->names.players[i]);
+                            }
                         }
                     }
                 }
@@ -429,7 +431,7 @@ static void handle_transition(ClientData *data)
     }
 }
 
-void play_client(const char *ip, int port, const char *const *colors)
+void play_client(const char *ip, int port)
 {
     printf("Trying to connect to server %s:%d...\n", ip, port);
     clear_input();
@@ -445,7 +447,6 @@ void play_client(const char *ip, int port, const char *const *colors)
 
     ClientData data = {
         .socket = socket,
-        .colors = colors,
         .state  = PLAYER_STATE_CONNECTED
     };
 

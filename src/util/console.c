@@ -6,16 +6,50 @@
 #include <errno.h>
 
 #include "console.h"
-#include "multiplayer/protocol.h"
+#include "../multiplayer/protocol.h"
 #include "string_builder.h"
 #include "string_util.h"
 #include "table.h"
 
-#define BLK    "\033[38:2:000:000:000m"
-#define WHT    "\033[38:2:255:255:255m"
-#define BLK_BG "\033[48:2:000:000:000m"
-#define WHT_BG "\033[48:2:255:255:255m"
+
+typedef struct
+{
+    const char *str;
+    const char *col;
+} Color;
+
+static const Color colors[] = {
+    { "Orange", "\033[38;5;208m"},
+    { " Red  ", "\033[38;5;9m" },
+    { "Yellow", "\033[38;5;226m" },
+    { " Blue ", "\033[38;5;21m" },
+    { " Cyan ", "\033[38;5;14m" },
+    { "Green ", "\033[38;5;40m" },
+    { "DrkGrn", "\033[38;5;22m" },
+    { " Pink ", "\033[38;5;13m" },
+};
+
+#define BLK    "\033[38;5;0m"
+#define WHT    "\033[38;5;15m"
+#define BLK_BG "\033[48;5;0m"
+#define WHT_BG "\033[48;5;15m"
 #define RST    "\033[0m"
+
+// Static functions
+
+/*
+static const char *get_col_str(int index)
+{
+
+}
+
+static const char *get_col_prefix(int index)
+{
+
+}
+*/
+
+// Messages
 
 void clear_input()
 {
@@ -30,12 +64,15 @@ void clear_screen()
 
 void print_winning_message(int num_turns)
 {
-    printf("~ ~ Game won in %d steps ~ ~\n\n", num_turns);
+    printf("~ ~ You guessed right! You took %d guesses. ~ ~\n", num_turns);
 }
 
-void print_losing_message(int num_max_guesses)
+void print_losing_message(MM_Context *ctx, Code_t solution)
 {
-    printf("~ ~ Game over - You could not make it in %d turns ~ ~\n", num_max_guesses);
+    printf("~ ~ Game over. You couldn't make it in %d turns. ~ ~\n", mm_get_max_guesses(ctx));
+    printf("Solution: ");
+    print_colors(ctx, solution);
+    printf("\n");
 }
 
 // IO Functions
@@ -88,13 +125,13 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
     strb_append(&pb, "%d/%d colors [", turn, mm_get_max_guesses(ctx));
     for (int i = 0; i < mm_get_num_colors(ctx); i++)
     {
-        strb_append(&pb, "%c", to_lower(*first_char(mm_get_color_string(ctx, i))));
+        strb_append(&pb, "%s%c" RST, colors[i].col, to_lower(*first_char(colors[i].str)));
     }
     strb_append(&pb, "]*%d: ", mm_get_num_slots(ctx));
 
     bool validated = false;
     char *input    = NULL;
-    int colors[MAX_NUM_SLOTS];
+    int input_colors[MAX_NUM_SLOTS];
 
     while (!validated)
     {
@@ -110,16 +147,16 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
             validated = true;
             for (int i = 0; (i < mm_get_num_slots(ctx)) && validated; i++)
             {
-                colors[i] = UINT8_MAX;
+                input_colors[i] = UINT8_MAX;
                 for (int j = 0; j < mm_get_num_colors(ctx); j++)
                 {
-                    if (to_lower(*first_char(mm_get_color_string(ctx, j))) == to_lower(input[i]))
+                    if (to_lower(*first_char(colors[j].str)) == to_lower(input[i]))
                     {
-                        colors[i] = j;
+                        input_colors[i] = j;
                         break;
                     }
                 }
-                if (colors[i] == UINT8_MAX)
+                if (input_colors[i] == UINT8_MAX)
                 {
                     validated = false;
                     break;
@@ -133,9 +170,8 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 
         free(input);
     }
-    *out_code = mm_colors_to_code(ctx, colors);
+    *out_code = mm_colors_to_code(ctx, input_colors);
     print_colors(ctx, *out_code);
-    printf("\n");
     strb_destroy(&pb);
     return true;
 }
@@ -153,7 +189,8 @@ char *get_colors_string(MM_Context *ctx, Code_t input)
     strb_append(&builder, " ");
     for (int i = 0; i < mm_get_num_slots(ctx); i++)
     {
-        strb_append(&builder, "%s  ", mm_get_color_string(ctx, mm_get_color_at_pos(mm_get_num_colors(ctx), input, i)));
+        int col = mm_get_color_at_pos(mm_get_num_colors(ctx), input, i);
+        strb_append(&builder, "%s%s" RST "  ", colors[col].col, colors[col].str);
     }
     return strb_to_str(&builder);
 }
@@ -162,7 +199,21 @@ void print_feedback(MM_Context *ctx, Feedback_t feedback)
 {
     int b, w;
     mm_code_to_feedback(ctx, feedback, &b, &w);
-    printf(BLK_BG WHT " Black: %d " RST "    " WHT_BG BLK " White: %d " RST, b, w); // 24 chars
+    printf(BLK_BG WHT);
+    for (int i = 0; i < b; i++)
+    {
+        printf(" X ");
+    }
+    printf(WHT_BG BLK);
+    for (int i = 0; i < w; i++)
+    {
+        printf(" x ");
+    }
+    printf(RST);
+    for (int i = 0; i < mm_get_num_slots(ctx) - b - w; i++)
+    {
+        printf(" . ");
+    }
 }
 
 void print_round_summary_table(MM_Context *ctx,

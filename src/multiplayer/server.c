@@ -18,8 +18,6 @@
 #include "protocol.h"
 #include "server.h"
 
-#define TIMEOUT_SECONDS 1000
-
 typedef struct
 {
     PlayerState previous_state;
@@ -340,9 +338,6 @@ static void handle_transition(ServerData *data, int pl)
     {
         GuessPackage_Q guess;
         recv(player->socket, &guess, sizeof(GuessPackage_Q), MSG_WAITALL);
-        printf("%s guessed ", player->name);
-        print_colors(data->ctx, guess.guess);
-        printf("\n");
 
         FeedbackPackage_R feedback = { 0 };
         feedback.feedback          = mm_get_feedback(data->ctx, guess.guess, data->curr_solution);
@@ -378,6 +373,10 @@ static void handle_transition(ServerData *data, int pl)
             feedback.solution = data->curr_solution;
             break;
         }
+
+        printf("%s guessed ", player->name);
+        print_colors(data->ctx, guess.guess);
+        printf(" (%d)\n", mm_get_turns(player->match));
 
         if (player->state == PLAYER_STATE_FINISHED)
         {
@@ -459,7 +458,6 @@ static bool process_next_transition(ServerData *data)
     int pl = get_next_transition(data, &next_state);
     if (pl == -1)
     {
-        printf("REcv failed\n");
         return false;
     }
     bool legal_transition = false;

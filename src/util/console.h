@@ -1,6 +1,6 @@
 #pragma once
 #include "../multiplayer/protocol.h"
-#include "mastermind.h"
+#include "../mastermind.h"
 #include <stdint.h>
 
 char *readline_fmt(const char *fmt, ...);
@@ -8,7 +8,7 @@ void clear_input();
 void clear_screen();
 void await_enter();
 void print_winning_message(int num_turns);
-void print_losing_message(int num_max_guesses);
+void print_losing_message(MM_Context *ctx, Code_t solution);
 
 Feedback_t read_feedback(MM_Context *ctx);
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code);
