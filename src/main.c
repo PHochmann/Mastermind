@@ -190,7 +190,7 @@ int main()
 
     while (true)
     {
-        char *input = readline("(s)ingleplayer, (m)ultiplayer, (r)ecommender, (o)ptions or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (q)uick, (m)ultiplayer, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
@@ -205,8 +205,8 @@ int main()
             case 's':
                 singleplayer(ctx);
                 break;
-            case 'r':
-                recommender(ctx);
+            case 'q':
+                quick(ctx);
                 break;
             case 'm':
                 multiplayer(ctx, colors);

@@ -170,6 +170,7 @@ void print_round_summary_table(MM_Context *ctx,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
                                Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               int seconds[MAX_NUM_PLAYERS],
                                Code_t solution,
                                int round,
                                int points[MAX_NUM_PLAYERS])
@@ -222,6 +223,19 @@ void print_round_summary_table(MM_Context *ctx,
         next_row(tbl);
     }
     set_hline(tbl, BORDER_SINGLE);
+    for (int i = 0; i < num_players; i++)
+    {
+        set_span(tbl, 3, 1);
+        if (guesses[i][turns[i] - 1] == solution)
+        {
+            add_cell_fmt(tbl, " time: %d:%02d ", seconds[i] / 60, seconds[i] % 60);
+        }
+        else
+        {
+            add_empty_cell(tbl);
+        }
+    }
+    next_row(tbl);
     for (int i = 0; i < num_players; i++)
     {
         set_span(tbl, 3, 1);

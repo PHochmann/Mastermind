@@ -10,6 +10,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #include "../mastermind.h"
 #include "../util/console.h"
@@ -27,7 +28,7 @@ typedef struct
     char name[MAX_PLAYER_NAME_BYTES];
     MM_Match *match;
     int points;
-    int position;
+    time_t end;
 } Player;
 
 typedef struct
@@ -40,6 +41,7 @@ typedef struct
     Player players[MAX_NUM_PLAYERS];
     MM_Context *ctx;
     Code_t curr_solution;
+    time_t curr_start;
 } ServerData;
 
 static const Transition allowed_recv_transitions[] = {
@@ -309,8 +311,7 @@ static void handle_transition(ServerData *data, int pl)
         {
             for (int i = 0; i < data->num_players; i++)
             {
-                data->players[i].match  = mm_new_match(data->ctx, false);
-                data->players->position = INT16_MAX;
+                data->players[i].match = mm_new_match(data->ctx, false);
             }
             data->curr_solution = rand() % mm_get_num_codes(data->ctx);
             send_transition_broadcast(data, PLAYER_STATE_GUESSING);
@@ -324,6 +325,7 @@ static void handle_transition(ServerData *data, int pl)
                 send_broadcast(data, &all_names, sizeof(AllNicknamesPackage_R));
             }
             data->curr_round++;
+            time(&data->curr_start);
             printf("Start of round %d of %d\n", data->curr_round, data->num_rounds);
             printf("Solution: ");
             print_colors(data->ctx, data->curr_solution);
@@ -369,7 +371,7 @@ static void handle_transition(ServerData *data, int pl)
             break;
         case MM_MATCH_WON:
             send_transition(player, PLAYER_STATE_FINISHED);
-            player->position = count_states(data, PLAYER_STATE_FINISHED);
+            time(&player->end);
             break;
         case MM_MATCH_LOST:
             send_transition(player, PLAYER_STATE_FINISHED);
@@ -402,6 +404,7 @@ static void handle_transition(ServerData *data, int pl)
 
                 if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
                 {
+                    summary.seconds[i] = (int)difftime(data->players[i].end, data->curr_start);
                     if ((summary.winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[summary.winner_pl]))
                     {
                         summary.win_reason_quicker = true;
@@ -413,7 +416,7 @@ static void handle_transition(ServerData *data, int pl)
 
                     if ((summary.num_turns[i] < summary.num_turns[summary.winner_pl])
                         || ((summary.num_turns[i] == summary.num_turns[summary.winner_pl])
-                            && (data->players[i].position < data->players[summary.winner_pl].position))
+                            && (data->players[i].end < data->players[summary.winner_pl].end))
                         || (summary.winner_pl == -1))
                     {
                         summary.winner_pl = i;

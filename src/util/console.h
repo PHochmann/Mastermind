@@ -21,6 +21,7 @@ void print_round_summary_table(MM_Context *ctx,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
                                Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               int seconds[MAX_NUM_PLAYERS],
                                Code_t solution,
                                int round,
                                int points[MAX_NUM_PLAYERS]);

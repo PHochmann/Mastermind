@@ -52,6 +52,7 @@ struct Table
     struct Row *first_row;                         // Start of linked list to rows
     struct Row *curr_row;                          // Marker of row of next inserted cell
     size_t curr_col;                               // Marker of col of next inserted cell
+    char *title;                                   // Title of table
     TableBorderStyle borders_left[TABLE_MAX_COLS]; // Default left border of cols
     TableHAlign h_aligns[TABLE_MAX_COLS];          // Default horizontal alignment of cols
     TableVAlign v_aligns[TABLE_MAX_COLS];          // Default vertical alignment of cols
@@ -617,10 +618,28 @@ static void satisfy_constraints(size_t num_constrs, struct Constraint *constrs, 
 
 void get_dimensions(Table *table, size_t *out_col_widths, size_t *out_row_heights)
 {
-    struct Constraint *constrs = malloc(table->num_cols * table->num_rows * sizeof(struct Constraint));
+    struct Constraint *constrs = malloc((table->num_cols * table->num_rows + 1) * sizeof(struct Constraint)); // +1 for title
     // Satisfy constraints of width
     struct Row *curr_row = table->first_row;
     size_t index         = 0;
+
+    if (table->title != NULL)
+    {
+        size_t min = get_text_width(table->title);
+        for (size_t j = 0; j < table->num_cols; j++)
+        {
+            if (min == 0)
+                break;
+            if (table->border_left_counters[j] > 0)
+                min--;
+        }
+        constrs[0] = (struct Constraint){
+            .min        = min,
+            .from_index = 0,
+            .to_index   = table->num_cols
+        };
+    }
+
     while (curr_row != NULL)
     {
         for (size_t i = 0; i < table->num_cols; i++)
@@ -650,7 +669,9 @@ void get_dimensions(Table *table, size_t *out_col_widths, size_t *out_row_height
         curr_row = curr_row->next_row;
     }
     for (size_t i = 0; i < table->num_cols; i++)
+    {
         out_col_widths[i] = 0;
+    }
     satisfy_constraints(index, constrs, out_col_widths);
 
     // Satisfy constraints of height
@@ -711,7 +732,8 @@ Table *get_empty_table()
                          .h_aligns             = { H_ALIGN_LEFT },
                          .v_aligns             = { V_ALIGN_TOP },
                          .borders_left         = { BORDER_NONE },
-                         .border_left_counters = { 0 }
+                         .border_left_counters = { 0 },
+                         .title                = NULL
     };
     return res;
 }
@@ -731,6 +753,7 @@ void free_table(Table *table)
         free_row(table, row);
         row = next_row;
     }
+    free(table->title);
     free(table);
 }
 
@@ -826,6 +849,21 @@ void add_cell_vfmt(Table *table, const char *fmt, va_list args)
     StringBuilder builder = strb_create(0);
     vstrb_append(&builder, fmt, args);
     add_text_cell(table, builder.buffer, true);
+}
+
+void set_title_fmt(Table *table, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    set_title_vfmt(table, fmt, args);
+    va_end(args);
+}
+
+void set_title_vfmt(Table *table, const char *fmt, va_list args)
+{
+    StringBuilder builder = strb_create(0);
+    vstrb_append(&builder, fmt, args);
+    table->title = builder.buffer;
 }
 
 /*

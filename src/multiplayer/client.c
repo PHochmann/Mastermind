@@ -273,7 +273,7 @@ static void handle_transition(ClientData *data)
             RoundEndPackage_R summary;
             receive(data->socket, &summary, sizeof(RoundEndPackage_R));
             print_round_summary_table(data->ctx, data->rules.num_players, data->names.players,
-                                      summary.num_turns, summary.guesses,
+                                      summary.num_turns, summary.guesses, summary.seconds,
                                       summary.solution, data->curr_round, summary.points);
 
             if (summary.winner_pl != -1)
