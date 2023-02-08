@@ -65,7 +65,6 @@ typedef struct
 typedef struct
 {
     Feedback_t feedback;
-    MM_MatchState match_state;
     Code_t solution;
     bool waiting_for_others;
 } FeedbackPackage_R;

@@ -17,6 +17,86 @@
 #define DEFAULT_IP "127.0.0.1"
 #define PORT       25567
 
+static Code_t change_solution_evil(MM_Match *match, Code_t input, Code_t curr_solution)
+{
+    if (mm_get_remaining_solutions(match) == 1 || input != curr_solution)
+    {
+        return curr_solution;
+    }
+    else
+    {
+        bool *sols            = mm_get_solution_space(match);
+        CodeSize_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
+        for (CodeSize_t i = 0; i < mm_get_num_codes(mm_get_context(match)); i++)
+        {
+            if (sols[i] && (i != input))
+            {
+                if (random_sol == 0)
+                {
+                    return i;
+                }
+                else
+                {
+                    random_sol--;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+static void quickie(MM_Context *ctx)
+{
+    Code_t solution = rand() % mm_get_num_codes(ctx);
+    MM_Match *match = mm_new_match(ctx, true);
+    while (mm_get_state(match) == MM_MATCH_PENDING)
+    {
+        Code_t guess;
+        if (mm_get_turns(match) == 0)
+        {
+            guess = rand() % mm_get_num_codes(ctx);
+        }
+        else
+        {
+            guess = mm_recommend_guess(match);
+        }
+        solution = change_solution_evil(match, guess, solution);
+        mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
+    }
+
+    MM_Match *s_match = mm_new_match(ctx, true);
+    for (int i = mm_get_turns(match) - 2; i >= 0; i--)
+    {
+        if (mm_constrain(s_match, mm_get_history_guess(match, i), mm_get_history_feedback(match, i)) != 0)
+        {
+            print_guess(i, match, false);
+            printf("\n");
+        }
+    }
+
+    Code_t sol;
+    if (read_colors(ctx, -1, &sol))
+    {
+        mm_constrain(s_match, sol, mm_get_feedback(ctx, sol, solution));
+        print_guess(-1, s_match, false);
+        printf("\n");
+        if (sol == solution)
+        {
+            printf("~ ~ That's right! ~ ~\n");
+        }
+        else
+        {
+            printf("~ ~ Wrong - Solution: ");
+            print_colors(ctx, solution);
+            printf(" ~ ~\n");
+        }
+    }
+
+    mm_free_match(match);
+    mm_free_match(s_match);
+}
+
 static MM_Match *play_game(MM_Context *ctx, Code_t solution)
 {
     Feedback_t feedback = 0;
@@ -31,19 +111,15 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
             printf("\n");
             return match;
         }
+
+        solution = change_solution_evil(match, input, solution);
+
         feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
-        print_guess(mm_get_turns(match) - 1, match);
+        print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
     }
-    if (mm_get_state(match) == MM_MATCH_WON)
-    {
-        print_winning_message(mm_get_turns(match));
-    }
-    else
-    {
-        print_losing_message(ctx, solution);
-    }
+    print_match_end_message(match, solution);
     return match;
 }
 
@@ -136,7 +212,7 @@ int main()
 
     while (true)
     {
-        char *input = readline("(s)ingleplayer, (m)ultiplayer, (o)ptions or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (m)ultiplayer, (q)uickie, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
@@ -153,6 +229,9 @@ int main()
                 break;
             case 'm':
                 multiplayer(ctx);
+                break;
+            case 'q':
+                quickie(ctx);
                 break;
             case 'o':
                 options(&ctx);

@@ -342,8 +342,7 @@ static void handle_transition(ServerData *data, int pl)
         FeedbackPackage_R feedback = { 0 };
         feedback.feedback          = mm_get_feedback(data->ctx, guess.guess, data->curr_solution);
         mm_constrain(player->match, guess.guess, feedback.feedback);
-        feedback.match_state = mm_get_state(player->match);
-        if (feedback.match_state == MM_MATCH_LOST)
+        if (mm_get_state(player->match) == MM_MATCH_LOST)
         {
             feedback.solution = data->curr_solution;
         }

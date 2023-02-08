@@ -31,9 +31,7 @@ struct MM_Match
     int num_turns;
     Feedback_t feedbacks[MAX_MAX_GUESSES];
     Code_t guesses[MAX_MAX_GUESSES];
-
     bool enable_recommendation;
-    MM_Strategy strategy;
     CodeSize_t num_solutions;
     bool *solution_space; // On heap
 };
@@ -235,7 +233,7 @@ Code_t mm_recommend_guess(MM_Match *match)
     {
         return 0;
     }
-
+    init_feedback_lookup(match->ctx);
     long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
     for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
     {
@@ -290,11 +288,12 @@ Code_t mm_recommend_guess(MM_Match *match)
     return min;
 }
 
-void mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
+CodeSize_t mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
 {
     match->guesses[match->num_turns]   = guess;
     match->feedbacks[match->num_turns] = feedback;
     match->num_turns++;
+    CodeSize_t result = 0;
 
     if (match->enable_recommendation)
     {
@@ -306,6 +305,7 @@ void mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
                 if (mm_get_feedback(match->ctx, guess, i) != feedback)
                 {
                     match->solution_space[i] = false;
+                    result++;
                 }
                 else
                 {
@@ -313,8 +313,14 @@ void mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
                 }
             }
         }
-        match->num_solutions = remaining;
+        // Only reduce remaining solutions if not winning feedback
+        if (!mm_is_winning_feedback(match->ctx, feedback))
+        {
+            match->num_solutions = remaining;
+        }
     }
+
+    return result;
 }
 
 MM_Context *mm_get_context(MM_Match *match)
@@ -328,7 +334,6 @@ CodeSize_t mm_get_remaining_solutions(MM_Match *match)
     {
         return UINT16_MAX;
     }
-
     return match->num_solutions;
 }
 
@@ -361,4 +366,14 @@ MM_MatchState mm_get_state(MM_Match *match)
     {
         return MM_MATCH_PENDING;
     }
+}
+
+bool mm_is_solution_counting_enabled(MM_Match *match)
+{
+    return match->enable_recommendation;
+}
+
+bool *mm_get_solution_space(MM_Match *match)
+{
+    return match->solution_space;
 }

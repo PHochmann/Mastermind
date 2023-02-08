@@ -34,8 +34,6 @@ static const Color colors[] = {
 #define WHT_BG "\033[48;5;15m"
 #define RST    "\033[0m"
 
-// Messages
-
 void clear_input()
 {
     printf("\x1b[1F"); // Move to beginning of previous line
@@ -47,20 +45,25 @@ void clear_screen()
     printf("\033[1;1H\033[2J");
 }
 
-void print_winning_message(int num_turns)
+void print_match_end_message(MM_Match *match, Code_t solution)
 {
-    printf("~ ~ You guessed right! You took %d guesses. ~ ~\n", num_turns);
+    if (mm_get_state(match) == MM_MATCH_WON)
+    {
+        printf("~ ~ You guessed right in %d turns.", mm_get_turns(match));
+        if (mm_is_solution_counting_enabled(match) && (mm_get_remaining_solutions(match) > 1))
+        {
+            printf(" (%d alternative solutions possible)", mm_get_remaining_solutions(match) - 1);
+        }
+        printf(" ~ ~\n");
+    }
+    else
+    {
+        printf("~ ~ Game over ~ ~\n");
+        printf("Solution: ");
+        print_colors(mm_get_context(match), solution);
+        printf("\n");
+    }
 }
-
-void print_losing_message(MM_Context *ctx, Code_t solution)
-{
-    printf("~ ~ Game over. You couldn't make it in %d turns. ~ ~\n", mm_get_max_guesses(ctx));
-    printf("Solution: ");
-    print_colors(ctx, solution);
-    printf("\n");
-}
-
-// IO Functions
 
 char *readline_fmt(const char *fmt, ...)
 {
@@ -178,11 +181,15 @@ void print_feedback(MM_Context *ctx, Feedback_t feedback)
     }
 }
 
-void print_guess(int index, MM_Match *match)
+void print_guess(int index, MM_Match *match, bool show_hint)
 {
+    if (index == -1)
+    {
+        index = mm_get_turns(match) - 1;
+    }
     print_colors(mm_get_context(match), mm_get_history_guess(match, index));
     print_feedback(mm_get_context(match), mm_get_history_feedback(match, index));
-    if ((mm_get_turns(match) - 1 == index) && (mm_get_remaining_solutions(match) == 1))
+    if (show_hint && mm_is_solution_counting_enabled(match) && (mm_get_remaining_solutions(match) == 1))
     {
         printf(" *");
     }

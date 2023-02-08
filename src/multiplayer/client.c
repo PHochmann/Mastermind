@@ -17,6 +17,7 @@
 #include "protocol.h"
 
 #define RETRY_WAIT_MS 500
+
 typedef struct
 {
     int socket;
@@ -24,7 +25,8 @@ typedef struct
     PlayerState state;
     MM_Context *ctx;
     int curr_round;
-    int curr_turn;
+    Code_t last_input;
+    MM_Match *curr_match;
     AllNicknamesPackage_R names;
     RulesPackage_R rules;
     bool ended_gracefully;
@@ -223,7 +225,11 @@ static void handle_transition(ClientData *data)
         receive(data->socket, &rules, sizeof(RulesPackage_R));
         printf("~ ~ Server rules colors~ ~\n"
                "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
-               rules.num_players, rules.num_colors, rules.num_slots, rules.max_guesses, rules.num_rounds);
+               rules.num_players,
+               rules.num_colors,
+               rules.num_slots,
+               rules.max_guesses,
+               rules.num_rounds);
         data->rules = rules;
         data->ctx   = mm_new_ctx(rules.max_guesses, rules.num_slots, rules.num_colors);
     }
@@ -271,9 +277,7 @@ static void handle_transition(ClientData *data)
         {
             RoundEndPackage_R summary;
             receive(data->socket, &summary, sizeof(RoundEndPackage_R));
-            print_round_summary_table(data->ctx, data->rules.num_players, data->names.players,
-                                      summary.num_turns, summary.guesses, summary.seconds,
-                                      summary.solution, data->curr_round, summary.points);
+            print_round_summary_table(data->ctx, data->rules.num_players, data->names.players, summary.num_turns, summary.guesses, summary.seconds, summary.solution, data->curr_round, summary.points);
 
             if (summary.winner_pl != -1)
             {
@@ -355,21 +359,19 @@ static void handle_transition(ClientData *data)
             data->names = all_names;
         }
 
-        if (data->curr_turn == 0) // Indicates beginning of round
+        if (data->curr_match == NULL) // Indicates beginning of round
         {
             data->curr_round++;
+            data->curr_match = mm_new_match(data->ctx, true);
             printf("\n~ ~ Round %d/%d ~ ~\n", data->curr_round, data->rules.num_rounds);
         }
-
-        data->curr_turn++;
 
         GuessPackage_Q guess_package;
         bool validated = false;
         while (!validated)
         {
-            if (!read_colors(data->ctx, data->curr_turn, &guess_package.guess))
+            if (!read_colors(data->ctx, mm_get_turns(data->curr_match) + 1, &guess_package.guess))
             {
-                clear_input();
                 if (abort_game(data))
                 {
                     return;
@@ -382,6 +384,7 @@ static void handle_transition(ClientData *data)
             }
         }
 
+        data->last_input = guess_package.guess;
         send_transition(data, PLAYER_STATE_AWAITING_FEEDBACK);
         send(data->socket, &guess_package, sizeof(GuessPackage_Q), 0);
     }
@@ -395,26 +398,27 @@ static void handle_transition(ClientData *data)
         print_feedback(data->ctx, feedback.feedback);
         printf("\n");
 
-        switch (feedback.match_state)
+        mm_constrain(data->curr_match, data->last_input, feedback.feedback);
+
+        switch (mm_get_state(data->curr_match))
         {
         case MM_MATCH_LOST:
-            print_losing_message(data->ctx, feedback.solution);
-            break;
         case MM_MATCH_WON:
-            print_winning_message(data->curr_turn);
+            print_match_end_message(data->curr_match, feedback.solution);
             break;
         case MM_MATCH_PENDING:
             break;
         }
 
-        if ((feedback.match_state != MM_MATCH_PENDING) && (feedback.waiting_for_others))
+        if ((mm_get_state(data->curr_match) != MM_MATCH_PENDING) && (feedback.waiting_for_others))
         {
             printf("Waiting for other players to finish the round...\n");
         }
     }
     else if (data->state == PLAYER_STATE_FINISHED)
     {
-        data->curr_turn = 0;
+        mm_free_match(data->curr_match);
+        data->curr_match = NULL;
     }
     else if (data->state == PLAYER_STATE_ABORTED)
     {
@@ -467,4 +471,5 @@ void play_client(const char *ip, int port)
     signal(SIGINT, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
     close_sockets(&data);
+    mm_free_match(data.curr_match);
 }

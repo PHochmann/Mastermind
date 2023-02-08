@@ -7,13 +7,12 @@ char *readline_fmt(const char *fmt, ...);
 void clear_input();
 void clear_screen();
 void await_enter();
-void print_winning_message(int num_turns);
-void print_losing_message(MM_Context *ctx, Code_t solution);
+void print_match_end_message(MM_Match *match, Code_t solution);
 
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code);
 void print_colors(MM_Context *ctx, Code_t input);
 void print_feedback(MM_Context *ctx, Feedback_t feedback);
-void print_guess(int index, MM_Match *match);
+void print_guess(int index, MM_Match *match, bool show_hint);
 char *get_colors_string(MM_Context *ctx, Code_t input);
 
 void print_round_summary_table(MM_Context *ctx,

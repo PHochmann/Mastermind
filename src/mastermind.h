@@ -43,9 +43,9 @@ CodeSize_t mm_get_num_codes(MM_Context *ctx);
 int mm_get_num_colors(MM_Context *ctx);
 int mm_get_num_slots(MM_Context *ctx);
 
-MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation);
+MM_Match *mm_new_match(MM_Context *ctx, bool enable_sol_counting);
 void mm_free_match(MM_Match *match);
-void mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
+CodeSize_t mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
 Code_t mm_recommend_guess(MM_Match *match);
 MM_Context *mm_get_context(MM_Match *match);
 
@@ -54,3 +54,5 @@ int mm_get_turns(MM_Match *match);
 Feedback_t mm_get_history_feedback(MM_Match *match, int index);
 Code_t mm_get_history_guess(MM_Match *match, int index);
 MM_MatchState mm_get_state(MM_Match *match);
+bool mm_is_solution_counting_enabled(MM_Match *match);
+bool *mm_get_solution_space(MM_Match *match);
