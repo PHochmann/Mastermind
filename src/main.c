@@ -17,9 +17,13 @@
 #define DEFAULT_IP "127.0.0.1"
 #define PORT       25567
 
+#define DEFAULT_MAX_GUESSES 10
+#define DEFAULT_NUM_COLORS  6
+#define DEFAULT_NUM_SLOTS   4
+
 static Code_t change_solution_evil(MM_Match *match, Code_t input, Code_t curr_solution)
 {
-    if (mm_get_remaining_solutions(match) == 1 || input != curr_solution)
+    if ((mm_get_remaining_solutions(match) == 1) || input != curr_solution)
     {
         return curr_solution;
     }
@@ -191,9 +195,9 @@ static void multiplayer(MM_Context *ctx)
 static void options(MM_Context **ctx)
 {
     int max_guesses, num_slots, num_colors;
-    if (readline_int("Max guesses", mm_get_max_guesses(*ctx), 2, MAX_MAX_GUESSES, &max_guesses)
-        && readline_int("Number of slots", mm_get_num_slots(*ctx), 2, MAX_NUM_SLOTS, &num_slots)
-        && readline_int("Number of colors", mm_get_num_colors(*ctx), 2, MAX_NUM_COLORS, &num_colors))
+    if (readline_int("Max guesses", DEFAULT_MAX_GUESSES, 2, MAX_MAX_GUESSES, &max_guesses)
+        && readline_int("Number of slots", DEFAULT_NUM_SLOTS, 2, MAX_NUM_SLOTS, &num_slots)
+        && readline_int("Number of colors", DEFAULT_NUM_COLORS, 2, MAX_NUM_COLORS, &num_colors))
     {
         mm_free_ctx(*ctx);
         *ctx = mm_new_ctx(max_guesses, num_slots, num_colors);
@@ -208,7 +212,7 @@ static void singleplayer(MM_Context *ctx)
 int main()
 {
     srand(time(NULL));
-    MM_Context *ctx = mm_new_ctx(10, 4, 6);
+    MM_Context *ctx = mm_new_ctx(DEFAULT_MAX_GUESSES, DEFAULT_NUM_SLOTS, DEFAULT_NUM_COLORS);
 
     while (true)
     {
@@ -222,23 +226,26 @@ int main()
         }
         else
         {
-            switch (to_lower(input[0]))
+            if (strlen(input) == 1)
             {
-            case 's':
-                singleplayer(ctx);
-                break;
-            case 'm':
-                multiplayer(ctx);
-                break;
-            case 'q':
-                quickie(ctx);
-                break;
-            case 'o':
-                options(&ctx);
-                break;
-            case 'e':
-                exit = true;
-                break;
+                switch (to_lower(input[0]))
+                {
+                case 's':
+                    singleplayer(ctx);
+                    break;
+                case 'm':
+                    multiplayer(ctx);
+                    break;
+                case 'q':
+                    quickie(ctx);
+                    break;
+                case 'o':
+                    options(&ctx);
+                    break;
+                case 'e':
+                    exit = true;
+                    break;
+                }
             }
             free(input);
         }

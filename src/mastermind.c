@@ -242,11 +242,12 @@ Code_t mm_recommend_guess(MM_Match *match)
 
     for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
     {
-        if (match->solution_space[i])
+        aggregations[i] = 0;
+        for (CodeSize_t j = 0; j < match->ctx->num_codes; j++)
         {
-            aggregations[i] = 0;
-            for (CodeSize_t j = 0; j < match->ctx->num_codes; j++)
+            if (match->solution_space[j])
             {
+
                 Feedback_t fb            = mm_get_feedback(match->ctx, j, i);
                 CodeSize_t num_solutions = 0;
                 for (CodeSize_t k = 0; k < match->ctx->num_codes; k++)
