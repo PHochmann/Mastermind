@@ -6,18 +6,11 @@
 #define MAX_NUM_COLORS    8
 #define MAX_NUM_SLOTS     6
 #define MAX_NUM_FEEDBACKS 27 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
-#define CONFIG_STRATEGY   MM_STRAT_AVERAGE
 
 typedef uint32_t Code_t;
 typedef uint32_t CodeSize_t;
 typedef uint16_t Feedback_t;
 typedef uint16_t FeedbackSize_t;
-
-typedef enum
-{
-    MM_STRAT_AVERAGE,
-    MM_STRAT_MINMAX
-} MM_Strategy;
 
 typedef enum
 {

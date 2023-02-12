@@ -9,6 +9,7 @@ void clear_screen();
 void await_enter();
 void print_match_end_message(MM_Match *match, Code_t solution);
 
+bool get_colors_from_string(MM_Context *ctx, const char *string, Code_t *out_code);
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code);
 void print_colors(MM_Context *ctx, Code_t input);
 void print_feedback(MM_Context *ctx, Feedback_t feedback);

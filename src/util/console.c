@@ -77,6 +77,36 @@ char *readline_fmt(const char *fmt, ...)
     return result;
 }
 
+bool get_colors_from_string(MM_Context *ctx, const char *string, Code_t *out_code)
+{
+    if ((int)strlen(string) == mm_get_num_slots(ctx))
+    {
+        int input_colors[MAX_NUM_SLOTS];
+        for (int i = 0; (i < mm_get_num_slots(ctx)); i++)
+        {
+            input_colors[i] = UINT8_MAX;
+            for (int j = 0; j < mm_get_num_colors(ctx); j++)
+            {
+                if (to_lower(*first_char(colors[j].str)) == to_lower(string[i]))
+                {
+                    input_colors[i] = j;
+                    break;
+                }
+            }
+            if (input_colors[i] == UINT8_MAX)
+            {
+                return false;
+            }
+        }
+        *out_code = mm_colors_to_code(ctx, input_colors);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 {
     StringBuilder pb = strb_create();
@@ -96,7 +126,6 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
 
     bool validated = false;
     char *input    = NULL;
-    int input_colors[MAX_NUM_SLOTS];
 
     while (!validated)
     {
@@ -107,36 +136,9 @@ bool read_colors(MM_Context *ctx, int turn, Code_t *out_code)
             strb_destroy(&pb);
             return false;
         }
-
-        if ((int)strlen(input) == mm_get_num_slots(ctx))
-        {
-            validated = true;
-            for (int i = 0; (i < mm_get_num_slots(ctx)) && validated; i++)
-            {
-                input_colors[i] = UINT8_MAX;
-                for (int j = 0; j < mm_get_num_colors(ctx); j++)
-                {
-                    if (to_lower(*first_char(colors[j].str)) == to_lower(input[i]))
-                    {
-                        input_colors[i] = j;
-                        break;
-                    }
-                }
-                if (input_colors[i] == UINT8_MAX)
-                {
-                    validated = false;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            validated = false;
-        }
-
+        validated = get_colors_from_string(ctx, input, out_code);
         free(input);
     }
-    *out_code = mm_colors_to_code(ctx, input_colors);
     strb_destroy(&pb);
     return true;
 }

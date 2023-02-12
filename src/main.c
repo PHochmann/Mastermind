@@ -29,9 +29,9 @@ static Code_t change_solution_evil(MM_Match *match, Code_t input, Code_t curr_so
     }
     else
     {
-        bool *sols            = mm_get_solution_space(match);
-        CodeSize_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
-        for (CodeSize_t i = 0; i < mm_get_num_codes(mm_get_context(match)); i++)
+        bool *sols        = mm_get_solution_space(match);
+        Code_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
+        for (Code_t i = 0; i < mm_get_num_codes(mm_get_context(match)); i++)
         {
             if (sols[i] && (i != input))
             {
@@ -67,14 +67,9 @@ static void quickie(MM_Context *ctx)
         }
         solution = change_solution_evil(match, guess, solution);
         mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
-    }
-
-    MM_Match *s_match = mm_new_match(ctx, true);
-    for (int i = mm_get_turns(match) - 2; i >= 0; i--)
-    {
-        if (mm_constrain(s_match, mm_get_history_guess(match, i), mm_get_history_feedback(match, i)) != 0)
+        if (mm_get_state(match) == MM_MATCH_PENDING)
         {
-            print_guess(i, match, false);
+            print_guess(mm_get_turns(match) - 1, match, true);
             printf("\n");
         }
     }
@@ -82,9 +77,9 @@ static void quickie(MM_Context *ctx)
     Code_t sol;
     if (read_colors(ctx, -1, &sol))
     {
-        mm_constrain(s_match, sol, mm_get_feedback(ctx, sol, solution));
-        print_guess(-1, s_match, false);
-        printf("\n");
+        print_colors(ctx, sol);
+        print_feedback(ctx, mm_get_feedback(ctx, sol, solution));
+        printf(" *\n");
         if (sol == solution)
         {
             printf("~ ~ That's right! ~ ~\n");
@@ -98,7 +93,6 @@ static void quickie(MM_Context *ctx)
     }
 
     mm_free_match(match);
-    mm_free_match(s_match);
 }
 
 static MM_Match *play_game(MM_Context *ctx, Code_t solution)
@@ -115,9 +109,6 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
             printf("\n");
             return match;
         }
-
-        solution = change_solution_evil(match, input, solution);
-
         feedback = mm_get_feedback(ctx, input, solution);
         mm_constrain(match, input, feedback);
         print_guess(mm_get_turns(match) - 1, match, true);

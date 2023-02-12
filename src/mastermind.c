@@ -235,49 +235,40 @@ Code_t mm_recommend_guess(MM_Match *match)
     }
     init_feedback_lookup(match->ctx);
     long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
-    for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
-    {
-        aggregations[i] = UINT32_MAX;
-    }
 
-    for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
+    if (match->num_solutions == 1)
     {
-        aggregations[i] = 0;
-        for (CodeSize_t j = 0; j < match->ctx->num_codes; j++)
+        for (Code_t j = 0; j < match->ctx->num_codes; j++)
         {
             if (match->solution_space[j])
             {
-
-                Feedback_t fb            = mm_get_feedback(match->ctx, j, i);
-                CodeSize_t num_solutions = 0;
-                for (CodeSize_t k = 0; k < match->ctx->num_codes; k++)
-                {
-                    if (match->solution_space[k])
-                    {
-                        if (mm_get_feedback(match->ctx, j, k) == fb)
-                        {
-                            num_solutions++;
-                        }
-                    }
-                }
-
-                switch (CONFIG_STRATEGY)
-                {
-                case MM_STRAT_AVERAGE:
-                    aggregations[i] += num_solutions;
-                    break;
-                case MM_STRAT_MINMAX:
-                    aggregations[i] = MAX(aggregations[i], num_solutions);
-                    break;
-                default:
-                    break;
-                }
+                return j;
             }
         }
     }
 
-    CodeSize_t min = 0;
-    for (CodeSize_t i = 0; i < match->ctx->num_codes; i++)
+    for (Code_t i = 0; i < match->ctx->num_codes; i++)
+    {
+        aggregations[i] = 0;
+        for (Feedback_t fb = 0; fb < match->ctx->num_feedbacks; fb++)
+        {
+            CodeSize_t num_solutions = 0;
+            for (Code_t j = 0; j < match->ctx->num_codes; j++)
+            {
+                if (match->solution_space[j])
+                {
+                    if (mm_get_feedback(match->ctx, j, i) == fb)
+                    {
+                        num_solutions++;
+                    }
+                }
+            }
+            aggregations[i] = MAX(aggregations[i], num_solutions);
+        }
+    }
+
+    Code_t min = 0;
+    for (Code_t i = 0; i < match->ctx->num_codes; i++)
     {
         if (aggregations[i] < aggregations[min])
         {
