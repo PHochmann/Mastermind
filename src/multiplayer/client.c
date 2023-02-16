@@ -404,7 +404,7 @@ static void handle_transition(ClientData *data)
         {
         case MM_MATCH_LOST:
         case MM_MATCH_WON:
-            print_match_end_message(data->curr_match, feedback.solution);
+            print_match_end_message(data->curr_match, feedback.solution, true);
             break;
         case MM_MATCH_PENDING:
             break;

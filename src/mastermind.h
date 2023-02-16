@@ -39,7 +39,7 @@ int mm_get_num_slots(MM_Context *ctx);
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_sol_counting);
 void mm_free_match(MM_Match *match);
 CodeSize_t mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
-Code_t mm_recommend_guess(MM_Match *match);
+Code_t mm_recommend_guess(MM_Match *match, Code_t solution);
 MM_Context *mm_get_context(MM_Match *match);
 
 CodeSize_t mm_get_remaining_solutions(MM_Match *match);

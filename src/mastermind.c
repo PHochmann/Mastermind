@@ -227,7 +227,7 @@ void mm_free_match(MM_Match *match)
     free(match);
 }
 
-Code_t mm_recommend_guess(MM_Match *match)
+Code_t mm_recommend_guess(MM_Match *match, Code_t solution)
 {
     if (!match->enable_recommendation)
     {
@@ -272,7 +272,14 @@ Code_t mm_recommend_guess(MM_Match *match)
     {
         if (aggregations[i] < aggregations[min])
         {
-            min = i;
+            Feedback_t fb = mm_get_feedback(match->ctx, i, solution);
+            int b, w;
+            mm_code_to_feedback(match->ctx, fb, &b, &w);
+            int fb_score = 2 * b + w;
+            if (fb_score < match->ctx->num_slots / 2)
+            {
+                min = i;
+            }
         }
     }
 

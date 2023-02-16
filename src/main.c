@@ -54,7 +54,7 @@ static void quickie(MM_Context *ctx)
 {
     Code_t solution = rand() % mm_get_num_codes(ctx);
     MM_Match *match = mm_new_match(ctx, true);
-    while (mm_get_state(match) == MM_MATCH_PENDING)
+    while (mm_get_remaining_solutions(match) > 1)
     {
         Code_t guess;
         if (mm_get_turns(match) == 0)
@@ -63,33 +63,25 @@ static void quickie(MM_Context *ctx)
         }
         else
         {
-            guess = mm_recommend_guess(match);
+            guess = mm_recommend_guess(match, solution);
         }
         solution = change_solution_evil(match, guess, solution);
         mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
-        if (mm_get_state(match) == MM_MATCH_PENDING)
-        {
-            print_guess(mm_get_turns(match) - 1, match, true);
-            printf("\n");
-        }
+        print_guess(mm_get_turns(match) - 1, match, true);
+        printf("\n");
     }
 
-    Code_t sol;
-    if (read_colors(ctx, -1, &sol))
+    Code_t input;
+    if (read_colors(ctx, -1, &input))
     {
-        print_colors(ctx, sol);
-        print_feedback(ctx, mm_get_feedback(ctx, sol, solution));
-        printf(" *\n");
-        if (sol == solution)
-        {
-            printf("~ ~ That's right! ~ ~\n");
-        }
-        else
-        {
-            printf("~ ~ Wrong - Solution: ");
-            print_colors(ctx, solution);
-            printf(" ~ ~\n");
-        }
+        mm_constrain(match, input, mm_get_feedback(ctx, input, solution));
+        print_guess(mm_get_turns(match) - 1, match, true);
+        printf("\n");
+        print_match_end_message(match, solution, false);
+    }
+    else
+    {
+        printf("Aborted\n");
     }
 
     mm_free_match(match);
@@ -114,7 +106,7 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
         print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
     }
-    print_match_end_message(match, solution);
+    print_match_end_message(match, solution, true);
     return match;
 }
 

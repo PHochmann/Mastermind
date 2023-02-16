@@ -7,7 +7,7 @@ char *readline_fmt(const char *fmt, ...);
 void clear_input();
 void clear_screen();
 void await_enter();
-void print_match_end_message(MM_Match *match, Code_t solution);
+void print_match_end_message(MM_Match *match, Code_t solution, bool show_turns);
 
 bool get_colors_from_string(MM_Context *ctx, const char *string, Code_t *out_code);
 bool read_colors(MM_Context *ctx, int turn, Code_t *out_code);
