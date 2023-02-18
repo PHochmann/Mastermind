@@ -18,30 +18,74 @@
 #define PORT       25567
 
 #define DEFAULT_MAX_GUESSES 10
-#define DEFAULT_NUM_COLORS  6
-#define DEFAULT_NUM_SLOTS   4
 
-static Code_t change_solution_evil(MM_Match *match, Code_t input, Code_t curr_solution)
+static Code_t adjust_solution(MM_Match *match, Code_t input, Code_t curr_solution, uint32_t min_score, uint32_t max_score)
 {
-    if ((mm_get_remaining_solutions(match) == 1) || input != curr_solution)
+    MM_Context *ctx = mm_get_context(match);
+    uint32_t score  = mm_get_feedback_score(ctx, mm_get_feedback(ctx, input, curr_solution));
+    if (((score >= min_score) && (score <= max_score)) || (mm_get_remaining_solutions(match) == 1))
     {
         return curr_solution;
     }
     else
     {
-        bool *sols        = mm_get_solution_space(match);
-        Code_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
-        for (Code_t i = 0; i < mm_get_num_codes(mm_get_context(match)); i++)
+        int viable = 0;
+        for (Code_t i = 0; i < mm_get_num_codes(ctx); i++)
         {
-            if (sols[i] && (i != input))
+            if (mm_is_in_solution(match, i) && (i != input))
             {
-                if (random_sol == 0)
+                uint32_t s = mm_get_feedback_score(ctx, mm_get_feedback(ctx, input, i));
+                if ((s >= min_score) && (s <= max_score))
                 {
-                    return i;
+                    viable++;
                 }
-                else
+            }
+        }
+
+        if (viable == 0)
+        {
+            if (input != curr_solution)
+            {
+                return curr_solution;
+            }
+            else
+            {
+                Code_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
+                for (Code_t i = 0; i < mm_get_num_codes(ctx); i++)
                 {
-                    random_sol--;
+                    if (mm_is_in_solution(match, i) && (i != input))
+                    {
+                        if (random_sol == 0)
+                        {
+                            return i;
+                        }
+                        else
+                        {
+                            random_sol--;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            Code_t random_sol = rand() % viable;
+            for (Code_t i = 0; i < mm_get_num_codes(ctx); i++)
+            {
+                if (mm_is_in_solution(match, i) && (i != input))
+                {
+                    uint32_t s = mm_get_feedback_score(ctx, mm_get_feedback(ctx, input, i));
+                    if ((s >= min_score) && (s <= max_score))
+                    {
+                        if (random_sol == 0)
+                        {
+                            return i;
+                        }
+                        else
+                        {
+                            random_sol--;
+                        }
+                    }
                 }
             }
         }
@@ -52,6 +96,20 @@ static Code_t change_solution_evil(MM_Match *match, Code_t input, Code_t curr_so
 
 static void quickie(MM_Context *ctx)
 {
+    const int num_difficulties = 4;
+    const int n_fb             = mm_get_num_feedbacks(ctx) - 1;
+    const int score_width      = n_fb / 3;
+
+    int difficulty;
+    if (!readline_int("Difficulty", num_difficulties / 2, 1, num_difficulties, &difficulty))
+    {
+        return;
+    }
+
+    int score_min = ((n_fb - score_width) / (num_difficulties - 1)) * (num_difficulties - difficulty);
+    int score_max = score_min + score_width;
+
+    mm_init_feedback_lookup(ctx);
     Code_t solution = rand() % mm_get_num_codes(ctx);
     MM_Match *match = mm_new_match(ctx, true);
     while (mm_get_remaining_solutions(match) > 1)
@@ -63,9 +121,9 @@ static void quickie(MM_Context *ctx)
         }
         else
         {
-            guess = mm_recommend_guess(match, solution);
+            guess = mm_recommend_guess(match);
         }
-        solution = change_solution_evil(match, guess, solution);
+        solution = adjust_solution(match, guess, solution, score_min, score_max);
         mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
         print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
@@ -179,8 +237,8 @@ static void options(MM_Context **ctx)
 {
     int max_guesses, num_slots, num_colors;
     if (readline_int("Max guesses", DEFAULT_MAX_GUESSES, 2, MAX_MAX_GUESSES, &max_guesses)
-        && readline_int("Number of slots", DEFAULT_NUM_SLOTS, 2, MAX_NUM_SLOTS, &num_slots)
-        && readline_int("Number of colors", DEFAULT_NUM_COLORS, 2, MAX_NUM_COLORS, &num_colors))
+        && readline_int("Number of slots", MM_DEFAULT_NUM_SLOTS, 2, MAX_NUM_SLOTS, &num_slots)
+        && readline_int("Number of colors", MM_DEFAULT_NUM_COLORS, 2, MAX_NUM_COLORS, &num_colors))
     {
         mm_free_ctx(*ctx);
         *ctx = mm_new_ctx(max_guesses, num_slots, num_colors);
@@ -195,7 +253,7 @@ static void singleplayer(MM_Context *ctx)
 int main()
 {
     srand(time(NULL));
-    MM_Context *ctx = mm_new_ctx(DEFAULT_MAX_GUESSES, DEFAULT_NUM_SLOTS, DEFAULT_NUM_COLORS);
+    MM_Context *ctx = mm_new_ctx(DEFAULT_MAX_GUESSES, MM_DEFAULT_NUM_SLOTS, MM_DEFAULT_NUM_COLORS);
 
     while (true)
     {

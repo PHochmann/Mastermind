@@ -3,13 +3,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "mastermind.h"
 #include "util/string_util.h"
 
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a >= b ? a : b)
-
 struct MM_Context
 {
     int max_guesses;
@@ -22,7 +22,8 @@ struct MM_Context
 
     // Optional
     bool fb_lookup_initialized;
-    Feedback_t *feedback_lookup; // On heap
+    Feedback_t *feedback_lookup;
+    uint32_t fb_scores[MAX_NUM_FEEDBACKS];
 };
 
 struct MM_Match
@@ -34,6 +35,10 @@ struct MM_Match
     bool enable_recommendation;
     CodeSize_t num_solutions;
     bool *solution_space; // On heap
+};
+
+int default_fb_scores[] = {
+    5, 0, 2, 7, 12, 3, 1, 6, 11, 4, 8, 10, 9, 13
 };
 
 static Feedback_t calculate_fb(MM_Context *ctx, Code_t a, Code_t b)
@@ -64,22 +69,71 @@ static Feedback_t calculate_fb(MM_Context *ctx, Code_t a, Code_t b)
     return ctx->feedback_encode[num_b][num_w];
 }
 
-void init_feedback_lookup(MM_Context *ctx)
+void mm_init_feedback_lookup(MM_Context *ctx)
 {
     if (ctx->fb_lookup_initialized)
     {
         return;
     }
-    ctx->feedback_lookup = malloc(ctx->num_codes * ctx->num_codes * sizeof(Code_t));
-    for (CodeSize_t a = 0; a < ctx->num_codes; a++)
+    ctx->fb_lookup_initialized = true;
+    ctx->feedback_lookup       = malloc(ctx->num_codes * ctx->num_codes * sizeof(Code_t));
+    for (Code_t a = 0; a < ctx->num_codes; a++)
     {
-        for (CodeSize_t b = 0; b <= a; b++)
+        for (Code_t b = 0; b <= a; b++)
         {
             ctx->feedback_lookup[a * ctx->num_codes + b] = calculate_fb(ctx, a, b);
             ctx->feedback_lookup[b * ctx->num_codes + a] = ctx->feedback_lookup[a * ctx->num_codes + b];
         }
     }
-    ctx->fb_lookup_initialized = true;
+
+    if (ctx->num_colors == MM_DEFAULT_NUM_COLORS && ctx->num_slots == MM_DEFAULT_NUM_SLOTS)
+    {
+        memcpy(ctx->fb_scores, default_fb_scores, ctx->num_feedbacks * sizeof(int));
+        return;
+    }
+
+    for (Feedback_t fb = 0; fb < ctx->num_feedbacks; fb++)
+    {
+        ctx->fb_scores[fb] = 0;
+        for (Code_t i = 0; i < ctx->num_codes; i++)
+        {
+            for (Code_t j = 0; j < ctx->num_codes; j++)
+            {
+                if (mm_get_feedback(ctx, i, j) == fb)
+                {
+                    ctx->fb_scores[fb]++;
+                }
+            }
+        }
+    }
+
+    Feedback_t sorted[MAX_NUM_FEEDBACKS];
+    for (int i = 0; i < ctx->num_feedbacks; i++)
+    {
+        int max = -1;
+        for (int j = 0; j < ctx->num_feedbacks; j++)
+        {
+            bool f = false;
+            for (int k = 0; k < i; k++)
+            {
+                if (sorted[k] == j)
+                {
+                    f = true;
+                    break;
+                }
+            }
+            if (f)
+            {
+                continue;
+            }
+            if (ctx->fb_scores[j] > ctx->fb_scores[max] || max == -1)
+            {
+                max = j;
+            }
+        }
+        sorted[i]                 = max;
+        ctx->fb_scores[sorted[i]] = i;
+    }
 }
 
 /*
@@ -100,7 +154,6 @@ MM_Match *mm_new_match(MM_Context *ctx, bool enable_recommendation)
 
     if (enable_recommendation)
     {
-        // init_feedback_lookupinit_feedback_lookup(ctx);
         result->num_solutions  = ctx->num_codes;
         result->solution_space = malloc(ctx->num_codes * sizeof(bool));
         if (result->solution_space == NULL)
@@ -221,19 +274,23 @@ int mm_get_num_colors(MM_Context *ctx)
     return ctx->num_colors;
 }
 
+int mm_get_num_feedbacks(MM_Context *ctx)
+{
+    return ctx->num_feedbacks;
+}
+
 void mm_free_match(MM_Match *match)
 {
     free(match->solution_space);
     free(match);
 }
 
-Code_t mm_recommend_guess(MM_Match *match, Code_t solution)
+Code_t mm_recommend_guess(MM_Match *match)
 {
     if (!match->enable_recommendation)
     {
         return 0;
     }
-    init_feedback_lookup(match->ctx);
     long *aggregations = malloc(match->ctx->num_codes * sizeof(long));
 
     if (match->num_solutions == 1)
@@ -272,14 +329,7 @@ Code_t mm_recommend_guess(MM_Match *match, Code_t solution)
     {
         if (aggregations[i] < aggregations[min])
         {
-            Feedback_t fb = mm_get_feedback(match->ctx, i, solution);
-            int b, w;
-            mm_code_to_feedback(match->ctx, fb, &b, &w);
-            int fb_score = 2 * b + w;
-            if (fb_score < match->ctx->num_slots / 2)
-            {
-                min = i;
-            }
+            min = i;
         }
     }
 
@@ -312,11 +362,7 @@ CodeSize_t mm_constrain(MM_Match *match, Code_t guess, Feedback_t feedback)
                 }
             }
         }
-        // Only reduce remaining solutions if not winning feedback
-        if (!mm_is_winning_feedback(match->ctx, feedback))
-        {
-            match->num_solutions = remaining;
-        }
+        match->num_solutions = remaining;
     }
 
     return result;
@@ -372,7 +418,12 @@ bool mm_is_solution_counting_enabled(MM_Match *match)
     return match->enable_recommendation;
 }
 
-bool *mm_get_solution_space(MM_Match *match)
+bool mm_is_in_solution(MM_Match *match, Code_t code)
 {
-    return match->solution_space;
+    return match->solution_space[code];
+}
+
+uint32_t mm_get_feedback_score(MM_Context *ctx, Feedback_t fb)
+{
+    return ctx->fb_scores[fb];
 }
