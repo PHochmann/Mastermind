@@ -48,9 +48,21 @@ static Code_t adjust_solution(MM_Match *match, Code_t input, Code_t curr_solutio
             {
                 if (sol == 0)
                 {
-                    return i;
+                    viable++;
                 }
-                else
+            }
+        }
+
+        if (viable == 0)
+        {
+            if (input != curr_solution)
+            {
+                return curr_solution;
+            }
+            else
+            {
+                Code_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
+                for (Code_t i = 0; i < mm_get_num_codes(ctx); i++)
                 {
                     sol--;
                 }
