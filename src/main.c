@@ -48,21 +48,9 @@ static Code_t adjust_solution(MM_Match *match, Code_t input, Code_t curr_solutio
             {
                 if (sol == 0)
                 {
-                    viable++;
+                    return i;
                 }
-            }
-        }
-
-        if (viable == 0)
-        {
-            if (input != curr_solution)
-            {
-                return curr_solution;
-            }
-            else
-            {
-                Code_t random_sol = rand() % (mm_get_remaining_solutions(match) - 1);
-                for (Code_t i = 0; i < mm_get_num_codes(ctx); i++)
+                else
                 {
                     sol--;
                 }
@@ -92,18 +80,18 @@ static Code_t adjust_solution(MM_Match *match, Code_t input, Code_t curr_solutio
 
 static void quickie(MM_Context *ctx)
 {
-    const int num_difficulties = 5;
-    const int n_fb             = mm_get_num_feedbacks(ctx) - 1;
-    const int score_width      = n_fb / 3;
-
+    const int num_difficulties = 4;
     int difficulty;
     if (!readline_int("Difficulty", num_difficulties / 2, 1, num_difficulties, &difficulty))
     {
         return;
     }
 
-    int score_min = ((n_fb - score_width) / (num_difficulties - 1)) * (num_difficulties - difficulty);
-    int score_max = score_min + score_width;
+    int max_fb    = mm_get_num_feedbacks(ctx) - 2;
+    int score_min = (num_difficulties - difficulty) * (max_fb / num_difficulties);
+    int score_max = score_min + (max_fb / num_difficulties);
+
+    printf("min score: %d, max score: %d\n", score_min, score_max);
 
     mm_init_feedback_lookup(ctx);
     Code_t solution = rand() % mm_get_num_codes(ctx);
@@ -136,7 +124,7 @@ static void quickie(MM_Context *ctx)
     }
     else
     {
-        printf("Aborted\n");
+        printf("\n");
     }
 
     mm_free_match(match);
@@ -254,7 +242,7 @@ int main()
 
     while (true)
     {
-        char *input = readline("(s)ingleplayer, (m)ultiplayer, (q)uickie, (o)ptions or (e)xit? ");
+        char *input = readline("(s)ingleplayer, (m)ultiplayer, (f)ast, (o)ptions or (e)xit? ");
         clear_input();
         bool exit = false;
 
@@ -274,7 +262,7 @@ int main()
                 case 'm':
                     multiplayer(ctx);
                     break;
-                case 'q':
+                case 'f':
                     quickie(ctx);
                     break;
                 case 'o':

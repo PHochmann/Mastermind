@@ -223,7 +223,7 @@ static void handle_transition(ClientData *data)
     {
         RulesPackage_R rules;
         receive(data->socket, &rules, sizeof(RulesPackage_R));
-        printf("~ ~ Server rules colors~ ~\n"
+        printf("~ ~ Server rules ~ ~\n"
                "%d players, %d colors, %d slots, %d max. guesses, %d rounds\n",
                rules.num_players,
                rules.num_colors,
