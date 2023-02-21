@@ -7,25 +7,15 @@
 #include "util/console.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define DEFAULT_NUM_COLORS 6
-#define DEFAULT_NUM_SLOTS  4
+int fb_scores[MM_MAX_NUM_FEEDBACKS] = {
+    5, 0, 2, 7, 12, 3, 1, 6, 11, 4, 8, 10, 9, 13
+};
 
-static void calculate_fb_score(MM_Context *ctx, int fb_scores[MM_MAX_NUM_FEEDBACKS])
+void calculate_fb_scores(MM_Context *ctx)
 {
-    static int default_fb_scores[] = {
-        5, 0, 2, 7, 12, 3, 1, 6, 11, 4, 8, 10, 9, 13
-    };
-
     FeedbackSize_t num_feedbacks = mm_get_num_feedbacks(ctx);
     CodeSize_t num_codes         = mm_get_num_codes(ctx);
-
-    if ((mm_get_num_colors(ctx) == DEFAULT_NUM_COLORS) && (mm_get_num_slots(ctx) == DEFAULT_NUM_SLOTS))
-    {
-        memcpy(fb_scores, default_fb_scores, num_feedbacks * sizeof(int));
-        return;
-    }
 
     for (Feedback_t fb = 0; fb < num_feedbacks; fb++)
     {
@@ -69,6 +59,15 @@ static void calculate_fb_score(MM_Context *ctx, int fb_scores[MM_MAX_NUM_FEEDBAC
         sorted[i]            = max;
         fb_scores[sorted[i]] = i;
     }
+
+#ifdef DEBUG
+    printf("Feedback scores: ");
+    for (int i = 0; i < num_feedbacks; i++)
+    {
+        printf("[%d]=%d, ", i, fb_scores[i]);
+    }
+    printf("\n");
+#endif
 }
 
 static CodeSize_t recommend_guess(MM_Match *match, Code_t **candidates)
@@ -139,7 +138,7 @@ static CodeSize_t recommend_guess(MM_Match *match, Code_t **candidates)
     return num_candidates;
 }
 
-static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidates, Code_t *candidates, int min_score, int max_score, Code_t *solution, int fb_scores[MM_MAX_NUM_FEEDBACKS])
+static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidates, Code_t *candidates, int min_score, int max_score, Code_t *solution)
 {
     if (mm_get_remaining_solutions(match) == 1)
     {
@@ -211,9 +210,6 @@ void quickie(MM_Context *ctx)
     int score_min = (num_difficulties - difficulty) * (max_fb / num_difficulties);
     int score_max = score_min + (max_fb / num_difficulties);
 
-    int fb_scores[MM_MAX_NUM_FEEDBACKS];
-    calculate_fb_score(ctx, fb_scores);
-
     mm_init_feedback_lookup(ctx);
     Code_t solution = rand() % mm_get_num_codes(ctx);
     MM_Match *match = mm_new_match(ctx, true);
@@ -239,7 +235,7 @@ void quickie(MM_Context *ctx)
 #endif
         }
 
-        Code_t guess = change_guess_and_solution(match, num_candidates, candidates, score_min, score_max, &solution, fb_scores);
+        Code_t guess = change_guess_and_solution(match, num_candidates, candidates, score_min, score_max, &solution);
         mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
         print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
