@@ -76,6 +76,6 @@ typedef struct
     int points[MAX_NUM_PLAYERS];
     int num_turns[MAX_NUM_PLAYERS];
     int seconds[MAX_NUM_PLAYERS];
-    Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES];
+    Code_t guesses[MAX_NUM_PLAYERS][MM_MAX_MAX_GUESSES];
     Code_t solution;
 } RoundEndPackage_R;

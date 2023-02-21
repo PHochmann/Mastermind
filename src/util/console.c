@@ -84,7 +84,7 @@ bool get_colors_from_string(MM_Context *ctx, const char *string, Code_t *out_cod
 {
     if ((int)strlen(string) == mm_get_num_slots(ctx))
     {
-        int input_colors[MAX_NUM_SLOTS];
+        int input_colors[MM_MAX_NUM_SLOTS];
         for (int i = 0; (i < mm_get_num_slots(ctx)); i++)
         {
             input_colors[i] = UINT8_MAX;
@@ -204,7 +204,7 @@ void print_round_summary_table(MM_Context *ctx,
                                int num_players,
                                char names[MAX_NUM_PLAYERS][MAX_PLAYER_NAME_BYTES],
                                int turns[MAX_NUM_PLAYERS],
-                               Code_t guesses[MAX_NUM_PLAYERS][MAX_MAX_GUESSES],
+                               Code_t guesses[MAX_NUM_PLAYERS][MM_MAX_MAX_GUESSES],
                                int seconds[MAX_NUM_PLAYERS],
                                Code_t solution,
                                int round,

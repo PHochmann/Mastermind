@@ -2,13 +2,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_MAX_GUESSES   20
-#define MAX_NUM_COLORS    8
-#define MAX_NUM_SLOTS     6
-#define MAX_NUM_FEEDBACKS 27 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
-
-#define MM_DEFAULT_NUM_COLORS 6
-#define MM_DEFAULT_NUM_SLOTS  4
+#define MM_MAX_MAX_GUESSES   20
+#define MM_MAX_NUM_COLORS    8
+#define MM_MAX_NUM_SLOTS     6
+#define MM_MAX_NUM_FEEDBACKS 27 // (MAX_NUM_SLOTS * (MAX_NUM_SLOTS / 2.0 + 1.5))
 
 typedef uint32_t Code_t;
 typedef uint32_t CodeSize_t;
@@ -43,7 +40,6 @@ int mm_get_num_feedbacks(MM_Context *ctx);
 MM_Match *mm_new_match(MM_Context *ctx, bool enable_sol_counting);
 void mm_free_match(MM_Match *match);
 CodeSize_t mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
-Code_t mm_recommend_guess(MM_Match *match);
 MM_Context *mm_get_context(MM_Match *match);
 
 CodeSize_t mm_get_remaining_solutions(MM_Match *match);
@@ -53,6 +49,5 @@ Code_t mm_get_history_guess(MM_Match *match, int index);
 MM_MatchState mm_get_state(MM_Match *match);
 bool mm_is_solution_counting_enabled(MM_Match *match);
 bool mm_is_in_solution(MM_Match *match, Code_t code);
-int mm_get_feedback_score(MM_Context *ctx, Feedback_t fb);
 
 void mm_init_feedback_lookup(MM_Context *ctx);
