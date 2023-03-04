@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "quickie.h"
 #include "mastermind.h"
@@ -8,29 +9,52 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-int fb_scores[MM_MAX_NUM_FEEDBACKS] = {
+// Mapping from feedback to rank
+double fb_scores[MM_MAX_NUM_FEEDBACKS] = {
     5, 0, 2, 7, 12, 3, 1, 6, 11, 4, 8, 10, 9, 13
 };
+int num_fbs = 14;
+
+#define NUM_DIFFICULTIES 3
+static const char *difficulty_labels[NUM_DIFFICULTIES] = { "Easy", "Medium", "Hard" };
 
 void calculate_fb_scores(MM_Context *ctx)
 {
     FeedbackSize_t num_feedbacks = mm_get_num_feedbacks(ctx);
     CodeSize_t num_codes         = mm_get_num_codes(ctx);
 
+    num_fbs = 0;
     for (Feedback_t fb = 0; fb < num_feedbacks; fb++)
     {
         fb_scores[fb] = 0;
+        int hits      = 0;
         for (Code_t i = 0; i < num_codes; i++)
         {
+            bool hit = false;
             for (Code_t j = 0; j < num_codes; j++)
             {
                 if (mm_get_feedback(ctx, i, j) == fb)
                 {
+                    hit = true;
                     fb_scores[fb]++;
                 }
             }
+            if (hit)
+            {
+                hits++;
+            }
+        }
+        if (hits != 0)
+        {
+            fb_scores[fb] = (double)fb_scores[fb] / hits;
+            num_fbs++;
         }
     }
+
+#ifdef DEBUG
+    printf("num codes: %d, ", num_codes);
+    printf("num_fbs / reachable: %d / %d\n", mm_get_num_feedbacks(ctx), num_fbs);
+#endif
 
     Feedback_t sorted[MM_MAX_NUM_FEEDBACKS];
     for (int i = 0; i < num_feedbacks; i++)
@@ -51,23 +75,18 @@ void calculate_fb_scores(MM_Context *ctx)
             {
                 continue;
             }
-            if (fb_scores[j] > fb_scores[max] || max == -1)
+            if ((fb_scores[j] > fb_scores[max]) || (max == -1))
             {
                 max = j;
             }
         }
-        sorted[i]            = max;
+        sorted[i] = max;
+#ifdef DEBUG
+        print_feedback(ctx, sorted[i]);
+        printf("score: %f, %d\n", fb_scores[sorted[i]], i);
+#endif
         fb_scores[sorted[i]] = i;
     }
-
-#ifdef DEBUG
-    printf("Feedback scores: ");
-    for (int i = 0; i < num_feedbacks; i++)
-    {
-        printf("[%d]=%d, ", i, fb_scores[i]);
-    }
-    printf("\n");
-#endif
 }
 
 static CodeSize_t recommend_guess(MM_Match *match, Code_t **candidates)
@@ -138,7 +157,7 @@ static CodeSize_t recommend_guess(MM_Match *match, Code_t **candidates)
     return num_candidates;
 }
 
-static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidates, Code_t *candidates, int min_score, int max_score, Code_t *solution)
+static Code_t get_guess_and_solution(MM_Match *match, CodeSize_t num_candidates, Code_t *candidates, int min_score, int max_score, Code_t *solution)
 {
     if (mm_get_remaining_solutions(match) == 1)
     {
@@ -163,7 +182,7 @@ static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidat
         for (Code_t j = 0; j < mm_get_num_codes(ctx); j++)
         {
             int score = fb_scores[mm_get_feedback(ctx, candidate, j)];
-            if (mm_is_in_solution(match, j) && (score <= max_score && score >= min_score))
+            if (mm_is_in_solution(match, j) && (score < max_score && score >= min_score))
             {
                 viable++;
             }
@@ -175,7 +194,7 @@ static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidat
             for (Code_t j = 0; j < mm_get_num_codes(ctx); j++)
             {
                 int score = fb_scores[mm_get_feedback(ctx, candidate, j)];
-                if (mm_is_in_solution(match, j) && (score <= max_score && score >= min_score))
+                if (mm_is_in_solution(match, j) && (score < max_score && score >= min_score))
                 {
                     if (sol == 0)
                     {
@@ -190,29 +209,50 @@ static Code_t change_guess_and_solution(MM_Match *match, CodeSize_t num_candidat
             }
         }
 #ifdef DEBUG
-        printf("Next...\n");
+        printf("Skipping code...\n");
 #endif
     }
-    printf("Error\n");
+
+#ifdef DEBUG
+    printf("Ran out of guess/solution-pairs\n");
+#endif
+
+    for (Code_t code = 0; code < mm_get_num_codes(ctx); code++)
+    {
+        if (mm_is_in_solution(match, code))
+        {
+            *solution = code;
+        }
+    }
+
     return candidates[0];
 }
 
 void quickie(MM_Context *ctx)
 {
-    const int num_difficulties = 4;
     int difficulty;
-    if (!readline_int("Difficulty", num_difficulties / 2, 1, num_difficulties, &difficulty))
+    if (!readline_int("Difficulty", NUM_DIFFICULTIES / 2, 1, NUM_DIFFICULTIES, &difficulty))
     {
         return;
     }
 
-    int max_fb    = mm_get_num_feedbacks(ctx) - 2;
-    int score_min = (num_difficulties - difficulty) * (max_fb / num_difficulties);
-    int score_max = score_min + (max_fb / num_difficulties);
+    int score_min = (NUM_DIFFICULTIES - difficulty) * (num_fbs / NUM_DIFFICULTIES);
+    int score_max = score_min + (num_fbs / NUM_DIFFICULTIES);
+
+    if ((difficulty == 1) && (score_max != num_fbs - 1))
+    {
+        score_max = num_fbs - 1;
+    }
+
+#ifdef DEBUG
+    printf("Min score (incl.): %d, Max score (excl.): %d, #fb: %d\n", score_min, score_max, num_fbs);
+#endif
 
     mm_init_feedback_lookup(ctx);
     Code_t solution = rand() % mm_get_num_codes(ctx);
     MM_Match *match = mm_new_match(ctx, true);
+
+    printf("~ ~ %s ~ ~\n", difficulty_labels[difficulty - 1]);
 
     while (mm_get_remaining_solutions(match) > 1)
     {
@@ -230,12 +270,9 @@ void quickie(MM_Context *ctx)
         else
         {
             num_candidates = recommend_guess(match, &candidates);
-#ifdef DEBUG
-            printf("Recommender returned %d codes\n", num_candidates);
-#endif
         }
 
-        Code_t guess = change_guess_and_solution(match, num_candidates, candidates, score_min, score_max, &solution);
+        Code_t guess = get_guess_and_solution(match, num_candidates, candidates, score_min, score_max, &solution);
         mm_constrain(match, guess, mm_get_feedback(ctx, guess, solution));
         print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
