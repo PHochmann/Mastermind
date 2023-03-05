@@ -119,7 +119,7 @@ static void options(MM_Context **ctx)
     {
         mm_free_ctx(*ctx);
         *ctx = mm_new_ctx(max_guesses, num_slots, num_colors);
-        calculate_fb_scores(*ctx);
+        set_pending_fb_scores();
     }
 }
 

@@ -13,7 +13,8 @@
 double fb_scores[MM_MAX_NUM_FEEDBACKS] = {
     5, 0, 2, 7, 12, 3, 1, 6, 11, 4, 8, 10, 9, 13
 };
-int num_fbs = 14;
+int num_fbs         = 14;
+bool fb_scores_init = true;
 
 #define NUM_DIFFICULTIES 3
 static const char *difficulty_labels[NUM_DIFFICULTIES] = { "Easy", "Medium", "Hard" };
@@ -228,12 +229,23 @@ static Code_t get_guess_and_solution(MM_Match *match, CodeSize_t num_candidates,
     return candidates[0];
 }
 
+void set_pending_fb_scores()
+{
+    fb_scores_init = false;
+}
+
 void quickie(MM_Context *ctx)
 {
     int difficulty;
     if (!readline_int("Difficulty", NUM_DIFFICULTIES / 2, 1, NUM_DIFFICULTIES, &difficulty))
     {
         return;
+    }
+
+    if (!fb_scores_init)
+    {
+        calculate_fb_scores(ctx);
+        fb_scores_init = true;
     }
 
     int score_min = (NUM_DIFFICULTIES - difficulty) * (num_fbs / NUM_DIFFICULTIES);

@@ -264,7 +264,7 @@ void print_round_summary_table(MM_Context *ctx,
         tbl_set_span(tbl, 3, 1);
         if (guesses[i][turns[i] - 1] == solution)
         {
-            tbl_add_cell_fmt(tbl, " time: %d:%02d ", seconds[i] / 60, seconds[i] % 60);
+            tbl_add_cell_fmt(tbl, " Time: %d:%02d ", seconds[i] / 60, seconds[i] % 60);
         }
         else
         {
@@ -275,7 +275,7 @@ void print_round_summary_table(MM_Context *ctx,
     for (int i = 0; i < num_players; i++)
     {
         tbl_set_span(tbl, 3, 1);
-        tbl_add_cell_fmt(tbl, " %d points total ", points[i]);
+        tbl_add_cell_fmt(tbl, " Total points: %d ", points[i]);
     }
     tbl_next_row(tbl);
 

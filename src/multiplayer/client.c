@@ -470,6 +470,6 @@ void play_client(const char *ip, int port)
 
     signal(SIGINT, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
-    close_sockets(&data);
     mm_free_match(data.curr_match);
+    close_sockets(&data);
 }
