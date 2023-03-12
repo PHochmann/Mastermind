@@ -132,7 +132,7 @@ int main()
 {
     srand(time(NULL));
     MM_Context *ctx = mm_new_ctx(DEFAULT_MAX_GUESSES, DEFAULT_NUM_SLOTS, DEFAULT_NUM_COLORS);
-    printf("Mastermind (c) Philipp Hochmann, Justine B. Geuenich\n");
+    printf("~ ~ Mastermind ~ ~\n");
 
     while (true)
     {
