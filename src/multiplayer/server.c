@@ -250,6 +250,51 @@ static void send_transition(Player *player, PlayerState state)
     send(player->socket, &response, sizeof(StateTransition_RQ), 0);
 }
 
+static void get_round_summary(ServerData *data, RoundEndPackage_R *summary)
+{
+    summary->solution  = data->curr_solution;
+    summary->winner_pl = -1;
+
+    for (int i = 0; i < data->num_players; i++)
+    {
+        summary->num_turns[i] = mm_get_turns(data->players[i].match);
+        summary->points[i]    = data->players[i].points;
+        for (int j = 0; j < summary->num_turns[i]; j++)
+        {
+            summary->guesses[i][j] = mm_get_history_guess(data->players[i].match, j);
+        }
+
+        if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
+        {
+            summary->seconds[i] = (int)difftime(data->players[i].end, data->curr_start);
+            if ((summary->winner_pl == -1) || (summary->num_turns[i] < summary->num_turns[summary->winner_pl]))
+            {
+                summary->winner_pl = i;
+            }
+        }
+    }
+
+    for (int i = 0; i < data->num_players; i++)
+    {
+        if (i != summary->winner_pl)
+        {
+            if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
+            {
+                if (summary->num_turns[i] == summary->num_turns[summary->winner_pl])
+                {
+                    summary->win_reason_quicker = true;
+                    if (data->players[i].end < data->players[summary->winner_pl].end)
+                    {
+                        summary->winner_pl = i;
+                    }
+                }
+            }
+        }
+
+        mm_free_match(data->players[i].match);
+    }
+}
+
 static void handle_transition(ServerData *data, int pl)
 {
     Player *player = &data->players[pl];
@@ -388,41 +433,8 @@ static void handle_transition(ServerData *data, int pl)
 
         if (is_all(data, PLAYER_STATE_FINISHED)) // End round
         {
-            RoundEndPackage_R summary = { 0 };
-            summary.solution          = data->curr_solution;
-            summary.winner_pl         = -1;
-            for (int i = 0; i < data->num_players; i++)
-            {
-                summary.num_turns[i] = mm_get_turns(data->players[i].match);
-                summary.points[i]    = data->players[i].points;
-                for (int j = 0; j < summary.num_turns[i]; j++)
-                {
-                    summary.guesses[i][j] = mm_get_history_guess(data->players[i].match, j);
-                }
-
-                if (mm_get_state(data->players[i].match) == MM_MATCH_WON)
-                {
-                    summary.seconds[i] = (int)difftime(data->players[i].end, data->curr_start);
-                    if ((summary.winner_pl != -1) && (summary.num_turns[i] == summary.num_turns[summary.winner_pl]))
-                    {
-                        summary.win_reason_quicker = true;
-                    }
-                    else
-                    {
-                        summary.win_reason_quicker = false;
-                    }
-
-                    if ((summary.num_turns[i] < summary.num_turns[summary.winner_pl])
-                        || ((summary.num_turns[i] == summary.num_turns[summary.winner_pl])
-                            && (data->players[i].end < data->players[summary.winner_pl].end))
-                        || (summary.winner_pl == -1))
-                    {
-                        summary.winner_pl = i;
-                    }
-                }
-
-                mm_free_match(data->players[i].match);
-            }
+            RoundEndPackage_R summary;
+            get_round_summary(data, &summary);
 
             if (summary.winner_pl != -1)
             {

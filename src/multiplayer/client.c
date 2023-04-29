@@ -290,7 +290,7 @@ static void handle_transition(ClientData *data)
                 printf("Nobody won this round.\n");
             }
 
-            if (data->curr_round == data->rules.num_rounds)
+            if (data->curr_round == data->rules.num_rounds) // Last round is over, print match results
             {
                 int best_points = 0;
                 for (int i = 0; i < data->rules.num_players; i++)
@@ -417,8 +417,7 @@ static void handle_transition(ClientData *data)
     }
     else if (data->state == PLAYER_STATE_FINISHED)
     {
-        mm_free_match(data->curr_match);
-        data->curr_match = NULL;
+        // Do nothing
     }
     else if (data->state == PLAYER_STATE_ABORTED)
     {
@@ -435,7 +434,7 @@ static void handle_transition(ClientData *data)
 
 void play_client(const char *ip, int port)
 {
-    printf("Trying to connect to server %s:%d...\n", ip, port);
+    printf("Connecting to server %s:%d...\n", ip, port);
     clear_input();
     sigint  = false;
     sigpipe = false;
