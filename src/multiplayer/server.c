@@ -369,7 +369,7 @@ static void handle_transition(ServerData *data, int pl)
             }
             data->curr_round++;
             time(&data->curr_start);
-            printf("Start of round %d of %d\n", data->curr_round, data->num_rounds);
+            printf("Start of round %d/%d\n", data->curr_round, data->num_rounds);
             printf("Solution: ");
             print_colors(data->ctx, data->curr_solution);
             printf("\n");
@@ -420,7 +420,7 @@ static void handle_transition(ServerData *data, int pl)
 
         printf("%s guessed ", player->name);
         print_colors(data->ctx, guess.guess);
-        printf(" (%d)\n", mm_get_turns(player->match));
+        printf(" (turn %d)\n", mm_get_turns(player->match));
 
         if (player->state == PLAYER_STATE_FINISHED)
         {
@@ -433,7 +433,7 @@ static void handle_transition(ServerData *data, int pl)
 
         if (is_all(data, PLAYER_STATE_FINISHED)) // End round
         {
-            RoundEndPackage_R summary;
+            RoundEndPackage_R summary = { 0 };
             get_round_summary(data, &summary);
 
             if (summary.winner_pl != -1)

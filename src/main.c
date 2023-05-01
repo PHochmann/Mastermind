@@ -128,6 +128,25 @@ static void singleplayer(MM_Context *ctx)
     mm_free_match(play_game(ctx, rand() % mm_get_num_codes(ctx)));
 }
 
+static void credits()
+{
+    Table *tbl = tbl_get_new();
+    tbl_set_span(tbl, 2, 1);
+    tbl_override_horizontal_alignment(tbl, TBL_H_ALIGN_CENTER);
+    tbl_add_cell(tbl, " Mastermind (c) 2023\n https://github.com/PHochmann/Mastermind.git ");
+    tbl_next_row(tbl);
+    tbl_add_cell(tbl, " Code: ");
+    tbl_add_cell(tbl, "Philipp Hochmann ");
+    tbl_next_row(tbl);
+    tbl_add_cell(tbl, " Algorithms: ");
+    tbl_add_cell(tbl, "Justine B. Geuenich ");
+    tbl_next_row(tbl);
+    tbl_make_boxed(tbl, TBL_BORDER_SINGLE);
+    tbl_set_alternative_style(tbl);
+    tbl_print(tbl);
+    tbl_free(tbl);
+}
+
 int main()
 {
     srand(time(NULL));
@@ -161,6 +180,9 @@ int main()
                     break;
                 case 'o':
                     options(&ctx);
+                    break;
+                case 'c':
+                    credits();
                     break;
                 case 'e':
                     exit = true;
