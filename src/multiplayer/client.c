@@ -451,7 +451,7 @@ void play_client(const char *ip, int port)
         .state  = PLAYER_STATE_CONNECTED
     };
 
-    while (data.state != PLAYER_STATE_DISCONNECTED)
+    while (data.state != PLAYER_STATE_DISCONNECTED && data.state != PLAYER_STATE_ABORTED)
     {
         if (!sigint)
         {
@@ -469,6 +469,9 @@ void play_client(const char *ip, int port)
 
     signal(SIGINT, SIG_DFL);
     signal(SIGPIPE, SIG_DFL);
-    mm_free_match(data.curr_match);
+    if (data.curr_match != NULL)
+    {
+        mm_free_match(data.curr_match);
+    }
     close_sockets(&data);
 }

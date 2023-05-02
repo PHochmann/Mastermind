@@ -24,10 +24,12 @@
 
 static MM_Match *play_game(MM_Context *ctx, Code_t solution)
 {
-    Feedback_t feedback = 0;
-    MM_Match *match     = mm_new_match(ctx, true);
+    Feedback_t feedback     = 0;
+    MM_Match *match         = mm_new_match(ctx, true);
+    int remaining_solutions = 0;
     while (mm_get_state(match) == MM_MATCH_PENDING)
     {
+        remaining_solutions = mm_get_remaining_solutions(match);
         Code_t input;
         if (!read_colors(ctx, mm_get_turns(match) + 1, &input))
         {
@@ -40,6 +42,10 @@ static MM_Match *play_game(MM_Context *ctx, Code_t solution)
         mm_constrain(match, input, feedback);
         print_guess(mm_get_turns(match) - 1, match, true);
         printf("\n");
+    }
+    if (remaining_solutions > 1)
+    {
+        printf("You won by luck, there were %d solutions still possible (including your guess).\n", remaining_solutions);
     }
     print_match_end_message(match, solution, true);
     return match;

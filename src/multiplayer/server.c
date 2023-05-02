@@ -531,7 +531,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
         return;
     }
 
-    while (!is_all(&data, PLAYER_STATE_DISCONNECTED))
+    while (!is_all(&data, PLAYER_STATE_DISCONNECTED) && !is_all(&data, PLAYER_STATE_ABORTED))
     {
         if (!process_next_transition(&data))
         {
