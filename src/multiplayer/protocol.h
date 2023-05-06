@@ -28,7 +28,7 @@ typedef struct
     PlayerState state;
 } StateTransition_RQ;
 
-typedef struct server
+typedef struct
 {
     PlayerState from;
     PlayerState to;

@@ -417,7 +417,8 @@ static void handle_transition(ClientData *data)
     }
     else if (data->state == PLAYER_STATE_FINISHED)
     {
-        // Do nothing
+        mm_free_match(data->curr_match);
+        data->curr_match = NULL;
     }
     else if (data->state == PLAYER_STATE_ABORTED)
     {
