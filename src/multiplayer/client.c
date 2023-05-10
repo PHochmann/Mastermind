@@ -277,7 +277,15 @@ static void handle_transition(ClientData *data)
         {
             RoundEndPackage_R summary;
             receive(data->socket, &summary, sizeof(RoundEndPackage_R));
-            print_round_summary_table(data->ctx, data->rules.num_players, data->names.players, summary.num_turns, summary.guesses, summary.seconds, summary.solution, data->curr_round, summary.points);
+            print_round_summary_table(data->ctx,
+                                      data->rules.num_players,
+                                      data->names.players,
+                                      summary.num_turns,
+                                      summary.guesses,
+                                      summary.seconds,
+                                      summary.solution,
+                                      data->curr_round,
+                                      summary.points);
 
             if (summary.winner_pl != -1)
             {
@@ -293,18 +301,15 @@ static void handle_transition(ClientData *data)
             if (data->curr_round == data->rules.num_rounds) // Last round is over, print match results
             {
                 int best_points = 0;
+                int num_winners = 0;
                 for (int i = 0; i < data->rules.num_players; i++)
                 {
                     if (best_points < summary.points[i])
                     {
                         best_points = summary.points[i];
+                        num_winners = 1;
                     }
-                }
-
-                int num_winners = 0;
-                for (int i = 0; i < data->rules.num_players; i++)
-                {
-                    if (summary.points[i] == best_points)
+                    if (best_points == summary.points[i])
                     {
                         num_winners++;
                     }
@@ -313,14 +318,26 @@ static void handle_transition(ClientData *data)
                 printf("\n~ ~ End of game ~ ~\n");
                 if (data->rules.num_players > 1)
                 {
-                    if (num_winners != 1)
+                    if (num_winners > 1)
                     {
                         printf("It's a draw between ");
                         for (int i = 0; i < data->rules.num_players; i++)
                         {
                             if (summary.points[i] == best_points)
                             {
-                                printf("%s, ", data->names.players[i]);
+                                printf("%s", data->names.players[i]);
+                                if (num_winners > 1)
+                                {
+                                    if (num_winners > 2)
+                                    {
+                                        printf(", ");
+                                    }
+                                    else
+                                    {
+                                        printf(" and ");
+                                    }
+                                }
+                                num_winners--;
                             }
                         }
                         printf("\n");
@@ -395,10 +412,16 @@ static void handle_transition(ClientData *data)
         {
             return;
         }
-        print_feedback(data->ctx, feedback.feedback);
-        printf("\n");
-
         mm_constrain(data->curr_match, data->last_input, feedback.feedback);
+        print_feedback(data->ctx, feedback.feedback);
+        if (data->rules.show_asterisk)
+        {
+            if (mm_get_remaining_solutions(data->curr_match) == 1)
+            {
+                printf(" *");
+            }
+        }
+        printf("\n");
 
         switch (mm_get_state(data->curr_match))
         {

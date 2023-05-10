@@ -43,6 +43,7 @@ typedef struct
     int num_slots;
     int num_players;
     int num_colors;
+    bool show_asterisk;
 } RulesPackage_R;
 
 // Is sent by client to propose a nickname

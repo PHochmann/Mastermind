@@ -25,7 +25,7 @@ static const Color colors[] = {
     { " Cyan ", "\033[38;5;51m" },
     { "Green ", "\033[38;5;40m" },
     { "DrkGrn", "\033[38;5;22m" },
-    { " Pink ", "\033[38;5;13m" },
+    { " Pink ", "\033[38;5;13m" }
 };
 
 #define BLK    "\033[38;5;0m"

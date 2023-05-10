@@ -302,12 +302,13 @@ static void handle_transition(ServerData *data, int pl)
     if (player->state == PLAYER_STATE_CONNECTED)
     {
         RulesPackage_R rules = (RulesPackage_R){
-            .player_id   = pl,
-            .num_players = data->num_players,
-            .num_rounds  = data->num_rounds,
-            .max_guesses = mm_get_max_guesses(data->ctx),
-            .num_colors  = mm_get_num_colors(data->ctx),
-            .num_slots   = mm_get_num_slots(data->ctx),
+            .player_id     = pl,
+            .num_players   = data->num_players,
+            .num_rounds    = data->num_rounds,
+            .max_guesses   = mm_get_max_guesses(data->ctx),
+            .num_colors    = mm_get_num_colors(data->ctx),
+            .num_slots     = mm_get_num_slots(data->ctx),
+            .show_asterisk = false
         };
         send_transition(player, PLAYER_STATE_RULES_RECEIVED);
         send(player->socket, &rules, sizeof(RulesPackage_R), 0);
