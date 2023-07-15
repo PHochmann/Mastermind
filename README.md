@@ -1,10 +1,6 @@
 # Mastermind
-Mastermind game (+duel mode) and solver (Knuth's algorithm)
+Mastermind game
 
 ## Singleplayer
 
-## Local duel
-
 ## TCP Multiplayer
-
-## Recommendation algorithm

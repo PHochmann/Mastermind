@@ -336,7 +336,7 @@ static void handle_transition(ServerData *data, int pl)
             }
         }
         send_transition(player, (rejected ? PLAYER_STATE_CHOOSING_NAME : PLAYER_STATE_NOT_ACKED));
-        printf("Got nickname from player[%d]: %s, ", pl, nickname.name);
+        printf("Got nickname from player %d: %s, ", pl, nickname.name);
         if (rejected)
         {
             printf("rejected\n");
@@ -522,8 +522,7 @@ void start_server(MM_Context *ctx, int num_players, int num_rounds, int port)
     {
         data.players[i].state  = PLAYER_STATE_NONE;
         data.players[i].socket = -1;
-        strncpy(data.players[i].name, "(no name yet)", MAX_PLAYER_NAME_BYTES);
-        data.players[i].name[MAX_PLAYER_NAME_BYTES - 1] = '\0';
+        snprintf(data.players[i].name, MAX_PLAYER_NAME_BYTES - 1, "Player %d", i);
     }
 
     open_listening_socket(&data);

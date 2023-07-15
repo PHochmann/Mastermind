@@ -10,36 +10,6 @@
 #define ESC_START 27
 #define ESC_END   109
 
-bool is_space(char c)
-{
-    return c == ' ';
-}
-
-bool is_digit(char c)
-{
-    return (c >= '0' && c <= '9') || c == '.';
-}
-
-bool is_letter(char c)
-{
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_' || c == '[' || c == ']';
-}
-
-bool is_opening_parenthesis(const char *c)
-{
-    return strcmp(c, "(") == 0 || strcmp(c, "{") == 0;
-}
-
-bool is_closing_parenthesis(const char *c)
-{
-    return strcmp(c, ")") == 0 || strcmp(c, "}") == 0;
-}
-
-bool is_delimiter(const char *c)
-{
-    return strcmp(c, ",") == 0;
-}
-
 bool begins_with(const char *prefix, const char *str)
 {
     size_t prefix_length = strlen(prefix);

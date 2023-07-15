@@ -304,14 +304,14 @@ static void handle_transition(ClientData *data)
                 int num_winners = 0;
                 for (int i = 0; i < data->rules.num_players; i++)
                 {
+                    if (best_points == summary.points[i])
+                    {
+                        num_winners++;
+                    }
                     if (best_points < summary.points[i])
                     {
                         best_points = summary.points[i];
                         num_winners = 1;
-                    }
-                    if (best_points == summary.points[i])
-                    {
-                        num_winners++;
                     }
                 }
 

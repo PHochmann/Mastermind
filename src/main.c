@@ -139,6 +139,11 @@ static void credits()
     Table *tbl = tbl_get_new();
     tbl_set_span(tbl, 2, 1);
     tbl_override_horizontal_alignment(tbl, TBL_H_ALIGN_CENTER);
+    tbl_add_cell(tbl, " Credits ");
+    tbl_next_row(tbl);
+    tbl_set_span(tbl, 2, 1);
+    tbl_set_hline(tbl, TBL_BORDER_SINGLE);
+    tbl_override_horizontal_alignment(tbl, TBL_H_ALIGN_CENTER);
     tbl_add_cell(tbl, " Mastermind (c) 2023\n https://github.com/PHochmann/Mastermind.git ");
     tbl_next_row(tbl);
     tbl_add_cell(tbl, " Code: ");
