@@ -55,6 +55,10 @@ void print_match_end_message(MM_Match *match, Code_t solution, bool show_turns)
             printf(" in %d turns", mm_get_turns(match));
         }
         printf(" ~ ~\n");
+        if (mm_is_solution_counting_enabled(match) && mm_get_remaining_solutions(match) > 1)
+        {
+            printf("You won by luck, there were %d solutions still possible (including your guess).\n", mm_get_remaining_solutions(match));
+        }
     }
     else
     {

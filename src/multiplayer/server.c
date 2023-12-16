@@ -224,7 +224,6 @@ static int count_states(ServerData *data, PlayerState state)
 
 static bool is_all(ServerData *data, PlayerState state)
 {
-
     return (count_states(data, state) == data->num_players);
 }
 

@@ -266,7 +266,7 @@ MM_Context *mm_get_context(MM_Match *match)
     return match->ctx;
 }
 
-CodeSize_t mm_get_remaining_solutions(MM_Match *match)
+CodeSize_t mm_get_remaining_solutions(const MM_Match *match)
 {
     if (!match->enable_recommendation)
     {
@@ -275,22 +275,22 @@ CodeSize_t mm_get_remaining_solutions(MM_Match *match)
     return match->num_solutions;
 }
 
-int mm_get_turns(MM_Match *match)
+int mm_get_turns(const MM_Match *match)
 {
     return match->num_turns;
 }
 
-Feedback_t mm_get_history_feedback(MM_Match *match, int index)
+Feedback_t mm_get_history_feedback(const MM_Match *match, int index)
 {
     return match->feedbacks[index];
 }
 
-Code_t mm_get_history_guess(MM_Match *match, int index)
+Code_t mm_get_history_guess(const MM_Match *match, int index)
 {
     return match->guesses[index];
 }
 
-MM_MatchState mm_get_state(MM_Match *match)
+MM_MatchState mm_get_state(const MM_Match *match)
 {
     if ((match->num_turns != 0) && (mm_is_winning_feedback(match->ctx, match->feedbacks[match->num_turns - 1])))
     {
@@ -306,12 +306,12 @@ MM_MatchState mm_get_state(MM_Match *match)
     }
 }
 
-bool mm_is_solution_counting_enabled(MM_Match *match)
+bool mm_is_solution_counting_enabled(const MM_Match *match)
 {
     return match->enable_recommendation;
 }
 
-bool mm_is_in_solution(MM_Match *match, Code_t code)
+bool mm_is_in_solution(const MM_Match *match, Code_t code)
 {
     return match->solution_space[code];
 }

@@ -42,12 +42,12 @@ void mm_free_match(MM_Match *match);
 CodeSize_t mm_constrain(MM_Match *match, Code_t input, Feedback_t feedback);
 MM_Context *mm_get_context(MM_Match *match);
 
-CodeSize_t mm_get_remaining_solutions(MM_Match *match);
-int mm_get_turns(MM_Match *match);
-Feedback_t mm_get_history_feedback(MM_Match *match, int index);
-Code_t mm_get_history_guess(MM_Match *match, int index);
-MM_MatchState mm_get_state(MM_Match *match);
-bool mm_is_solution_counting_enabled(MM_Match *match);
-bool mm_is_in_solution(MM_Match *match, Code_t code);
+CodeSize_t mm_get_remaining_solutions(const MM_Match *match);
+int mm_get_turns(const MM_Match *match);
+Feedback_t mm_get_history_feedback(const MM_Match *match, int index);
+Code_t mm_get_history_guess(const MM_Match *match, int index);
+MM_MatchState mm_get_state(const MM_Match *match);
+bool mm_is_solution_counting_enabled(const MM_Match *match);
+bool mm_is_in_solution(const MM_Match *match, Code_t code);
 
 void mm_init_feedback_lookup(MM_Context *ctx);
